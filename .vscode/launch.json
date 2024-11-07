@@ -1,0 +1,18 @@
+{
+    // Verwendet IntelliSense zum Ermitteln möglicher Attribute.
+    // Zeigen Sie auf vorhandene Attribute, um die zugehörigen Beschreibungen anzuzeigen.
+    // Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python-Debugger: Aktuelle Datei",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ["--DATASETPATH", "/Users/juho/Promotion/FakeData/Copies/IEEE/implementation/methods/CorGAN/temp_data/temp_data.csv",
+                    "--batch_size", "16", "--expPATH", "/Users/juho/Promotion/FakeData/Copies/IEEE/implementation/methods/CorGAN/models", 
+                    "--n_epochs_pretrain", "1", "--training", "True", "--n_epochs", "1", "--epoch_save_model_freq", "1", "--cl", "1", "--class_var", "0", "--smpl_frac", "1"],
+        }
+    ]
+}
