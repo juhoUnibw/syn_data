@@ -60,8 +60,10 @@ ipykernel==6.29.5
 ipython==8.18.1
 ipywidgets==8.1.3
 isoduration==20.11.0
-jax==0.4.16
-jaxlib @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_13ozjw0zke/croot/jaxlib_1697733701516/work/dist/jaxlib-0.4.16.dev20231019-cp39-cp39-macosx_10_14_x86_64.whl#sha256=b3b95685ed07d7e842f2a54d02ff46be3bb71e87d022f41dcbbda13ef6fe1f8c
+jax==0.4.28
+jax-cuda12-pjrt==0.4.28
+jax-cuda12-plugin==0.4.28
+jaxlib==0.4.28
 jedi==0.19.1
 Jinja2==3.1.3
 jmespath==1.0.1
@@ -100,6 +102,19 @@ networkx==3.2.1
 notebook==7.2.1
 notebook_shim==0.2.4
 numpy==1.24.4
+nvidia-cublas-cu12==12.4.5.8
+nvidia-cuda-cupti-cu12==12.4.127
+nvidia-cuda-nvcc-cu12==12.4.99
+nvidia-cuda-nvrtc-cu12==12.4.127
+nvidia-cuda-runtime-cu12==12.4.127
+nvidia-cudnn-cu12==8.9.7.29
+nvidia-cufft-cu12==11.2.1.3
+nvidia-curand-cu12==10.3.5.147
+nvidia-cusolver-cu12==11.6.1.9
+nvidia-cusparse-cu12==12.3.1.170
+nvidia-nccl-cu12==2.21.5
+nvidia-nvjitlink-cu12==12.4.127
+nvidia-nvtx-cu12==12.4.127
 openai==0.28.0
 openpyxl==3.1.2
 opt-einsum==3.3.0
@@ -130,7 +145,7 @@ python-json-logger==2.0.7
 pytz==2023.4
 PyYAML==6.0.1
 pyzmq==26.1.0
-pzflow==3.1.1
+pzflow==3.1.3
 qtconsole==5.5.2
 QtPy==2.4.1
 rdt==1.9.1
@@ -151,7 +166,7 @@ six==1.16.0
 sniffio==1.3.0
 soupsieve==2.5
 stack-data==0.6.3
-sympy==1.12
+sympy==1.13.1
 tenacity==8.2.3
 terminado==0.18.1
 threadpoolctl==3.2.0
@@ -159,11 +174,12 @@ tinycss2==1.3.0
 tokenizers==0.15.2
 tomli==2.0.1
 toolz==0.12.1
-torch==2.2.0
+torch==2.5.1
 tornado==6.4.1
 tqdm==4.66.1
 traitlets==5.14.3
 transformers==4.37.2
+triton==3.1.0
 types-python-dateutil==2.9.0.20240316
 typing_extensions==4.12.2
 tzdata==2023.4

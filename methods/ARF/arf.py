@@ -2,6 +2,7 @@ import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
 import subprocess
+import os
 
 
 # create synthetic data with ARF
@@ -16,8 +17,7 @@ def gen(trainSet, feat, smpl_frac, class_var):
     trainSet[class_var] = cl_col
 
     # provide training data and run synthesis R script
-    trainSet.to_csv('methods/ARF/train_data.csv')
-    #!Rscript --quiet arf_model.r $smplSize # synthesize data
+    trainSet.to_csv('methods/ARF/train_data.csv', index=True)
     cmd = ['Rscript', 'methods/ARF/arf_model.r', str(smpl_size)]
     subprocess.run(cmd, capture_output=True, text=True)
 
