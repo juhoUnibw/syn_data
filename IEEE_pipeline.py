@@ -45,7 +45,7 @@ dataset_names = \
 
 # available methods
 methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan', 'ensgen', 'genary', 'smote',
-           'priv_bayes', 'cart']
+           'priv_bayes', 'cart', 'great', 'tabula']
 
 # ## Configuration and Dataset Prepraration
 
@@ -198,7 +198,7 @@ def gen(data, n_spl, method, smpl_frac, test):
                     gen_data = conv_to_disc(gen_data, cat_feat_names)
                 if meth == 'ensgen':
                     ensgen = import_module('methods.ensemble.ensgen')
-                    gen_data_ens = ensgen.gen(train_set.copy(), feat.copy(), class_var, cat_feat_names.copy(), num_feat_names.copy(), smpl_frac_hist=0.5, n_bins=5, n_ens=5) # orig: smpl_frac_hist=0.5, n_bins=30, n_ens=30
+                    gen_data_ens = ensgen.gen(train_set.copy(), feat.copy(), class_var, cat_feat_names.copy(), num_feat_names.copy(), smpl_frac_hist=0.5, n_bins=30, n_ens=30) # orig: smpl_frac_hist=0.5, n_bins=30, n_ens=30
                     gen_data = pd.concat(gen_data_ens, axis=0) # appends all synthetic datasets (for saving purposes - need to be seperated accordingly in evaluation)
                 if meth == 'smote':
                     smote = import_module('methods.SMOTE.smote')
@@ -206,17 +206,17 @@ def gen(data, n_spl, method, smpl_frac, test):
                 if meth == 'genary': # method needs to be adjusted so that algorithm tests against all models
                     # sklearns kNN in this method causes problems when dealing with large datasets
                     genary = import_module('methods.evolutionary.genary')
-                    selec = genary.gen(train_set.copy(), feat.copy(), class_var, cat_feat_names.copy(), num_feat_names.copy(), smpl_frac, e_steps=2, n_cand=6, n_selec=2, crov_frac_pop=0.95, crov_frac_indv=0.5, mut_frac_pop=0.75, mut_frac_indv=0.03)
+                    selec = genary.gen(train_set.copy(), feat.copy(), class_var, cat_feat_names.copy(), num_feat_names.copy(), smpl_frac, e_steps=100, n_cand=100, n_selec=50, crov_frac_pop=0.95, crov_frac_indv=0.5, mut_frac_pop=0.75, mut_frac_indv=0.03)
                     gen_data = selec[0]
                 if meth == 'great': # sampling only works using gpu in standard code >> can be changed, though
                     great = import_module('methods.GReaT.great') # https://github.com/kathrinse/be_great/tree/main
-                    gen_data = great.gen(train_set.copy(), smpl_frac, llm_id='distil-gpt2') # distil-gpt2 / gpt2-medium
+                    gen_data = great.gen(train_set.copy(), smpl_frac, llm_id='distilgpt2') # distil-gpt2 / gpt2-medium
                 if meth == 'tabula': # sampling only works using gpu in standard code >> can be changed, though
                     tabula = import_module('methods.TabuLa.Tabula-main.tabula_gen') # https://github.com/zhao-zilong/tabula
                     gen_data = tabula.gen(train_set.copy(), cat_feat_names.copy(), smpl_frac)
                 if meth in ('priv_bayes', 'cart'): # synthpop package loads the parametric approach by default (was replaced with DT classifier class)
                     dpart = import_module('methods.dpart.dpart_gen')
-                    gen_data = dpart.gen(train_set.copy(), feat.copy(), class_var, meth, smpl_frac, eps=0.1)
+                    gen_data = dpart.gen(train_set.copy(), feat.copy(), class_var, meth, smpl_frac, eps=0.5)
 
                 # optional: remap original feature values
                 #data[feat] = data[feat].map(category_mapping)
