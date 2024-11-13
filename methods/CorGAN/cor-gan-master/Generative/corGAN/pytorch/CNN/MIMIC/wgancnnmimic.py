@@ -87,7 +87,7 @@ if torch.cuda.is_available() and not opt.cuda:
     print("WARNING: You have a CUDA device BUT it is not in use...")
 
 # Activate CUDA
-device = torch.device("cuda:0" if opt.cuda else "cpu")
+device = torch.device("cuda" if opt.cuda else "cpu")
 #print(device)
 
 ##########################

@@ -1,10 +1,9 @@
 import pandas as pd
-import warnings
-warnings.filterwarnings('ignore')
-from importlib import import_module
 import sys
 sys.path.append('methods/dpart')
 from dpart.engines import PrivBayes, DPsynthpop
+import warnings
+warnings.filterwarnings('ignore')
 
 
 # transforms generated data into dataframes

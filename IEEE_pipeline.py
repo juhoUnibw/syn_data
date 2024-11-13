@@ -169,7 +169,7 @@ def gen(data, n_spl, method, smpl_frac, test):
 
             for meth in tqdm(method_l):
 
-                #print(f"\n METHOD {method} ...")
+                print(f"\n METHOD {meth} ...")
 
                 # run data synthesis script
                 if meth in ('gausscop', 'tvae', 'ctgan'):

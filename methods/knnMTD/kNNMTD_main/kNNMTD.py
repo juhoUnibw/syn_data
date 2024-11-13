@@ -20,11 +20,12 @@ class kNNMTD():
     # type = 0 => Classification
     # type = 1 => Regression
     # type = -1 => Unsupervised 
-    def __init__(self, smpl_frac=1, k=3, mode=-1, random_state=1):
+    def __init__(self, smpl_frac=1, k=3, mode=-1, random_state=1, n_obs=100):
         self.type = mode
         self.smpl_frac = smpl_frac
-        self._gen_obs = 1000 # in original code this was the default value, although the number was dependent on the hyperparameter n_obs
-        # self._gen_obs = self.n_obs * 10 >> old
+        #self._gen_obs = 1000 #  used for my own testing
+        self.n_obs = n_obs
+        self._gen_obs = self.n_obs * 10 # orig
         self.k = k
         np.random.RandomState(random_state)
 

@@ -46,7 +46,8 @@ def gen(trainSet, smpl_frac, class_var, feat, disc_feat_names):
                                         '--training', 'True',\
                                         '--cl', '{}'.format(cl),\
                                         '--class_var', '{}'.format(class_var),\
-                                        '--smpl_frac', '{}'.format(smpl_frac)]
+                                        '--smpl_frac', '{}'.format(smpl_frac),\
+                                        '--cuda', 'True']
         output = subprocess.run(cmd, capture_output=True, text=True) # cmd: 50 epochs in real testing
         #print("Output:", output.stdout)
         #print("Error:", output.stderr)
