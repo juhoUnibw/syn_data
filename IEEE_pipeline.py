@@ -140,6 +140,7 @@ def gen(data, n_spl, method, smpl_frac, test):
         print("\n")
 
         dataset, class_var, cat_feat_names, num_feat_names = load_data(dataset_name)
+
         if args.test:
             if dataset.shape[0] > 500:
                 i=0
@@ -160,7 +161,7 @@ def gen(data, n_spl, method, smpl_frac, test):
 
             # prepares training / test data
             train_set, test_set = prepData(dataset, class_var)
-            train_set, test_set = check_cl_size(train_set, test_set, class_var, feat) # removes classes with sample size < 5
+            train_set, test_set = check_cl_size(train_set, test_set, class_var, feat) # removes classes with sample size < 5t
 
             if method != 'all':
                 method_l = [method]
