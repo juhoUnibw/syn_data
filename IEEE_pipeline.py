@@ -5,6 +5,9 @@ from importlib import reload, import_module
 import statistics
 import scipy.stats as stats
 import warnings
+
+from traitlets import Union
+
 warnings.filterwarnings('ignore')
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
@@ -44,8 +47,10 @@ dataset_names = \
         'eye': 'EEG Eye State/EEG Eye State.arff.txt'}
 
 # available methods
-methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan', 'ensgen', 'genary', 'smote',
+methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan', 'genary', 'smote',
            'priv_bayes', 'cart']
+# ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan', 'ensgen', 'genary', 'smote',
+#            'priv_bayes', 'cart']
 
 # ## Configuration and Dataset Prepraration
 
@@ -162,7 +167,7 @@ def gen(data, n_spl, method, smpl_frac, test):
             train_set, test_set = prepData(dataset, class_var)
             train_set, test_set = check_cl_size(train_set, test_set, class_var, feat) # removes classes with sample size < 5
 
-            if method != 'all':
+            if method != []:
                 method_l = [method]
             else:
                 method_l = methods
@@ -259,20 +264,31 @@ def ens_pred(gen_data, train_set, test_set, feat, class_var, model):
 def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, model, weights):
 
     w_us, w_pps = weights
+    data_level_all = []
+    data_level_winner = {}
 
-    for dataset_name, _ in dataset_names.items():
-        if data != 'all':
-            dataset_name = data
+    if data != []:
+        dataset_l = data
+    else:
+        dataset_l = dataset_names.keys()
+
+    for dataset_name in dataset_l:
 
         dataset, class_var, cat_feat_names, num_feat_names = load_data(dataset_name)
         cols = list(dataset.columns)
         cols.remove(class_var)
         feat = cols
 
-        if method != 'all':
-            method_l = [method]
+        if method != []:
+            method_l = method
         else:
             method_l = methods
+
+        f1_real_avg_all = []
+        f1_syn_avg_all = []
+        us_avg_all = []
+        pps_avg_all = []
+        ups_avg_all = []
 
         for meth in tqdm(method_l):
 
@@ -362,16 +378,45 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
                 ups_all.append(ups)
 
             # presents final results for each dataset
-            print(f"Dataset {data} - Method {meth}")
-            print("Syn:", sum(f1_syn_all) / len(f1_syn_all))
-            print("Real:", sum(f1_real_all) / len(f1_real_all))
-            print("us:", sum(us_all) / len(us_all))
-            print("pps:", sum(pps_all) / len(pps_all))
-            print("ups:", sum(ups_all) / len(ups_all))
+            f1_syn_avg = sum(f1_syn_all) / len(f1_syn_all)
+            f1_real_avg = sum(f1_real_all) / len(f1_real_all)
+            us_avg = sum(us_all) / len(us_all)
+            pps_avg = sum(pps_all) / len(pps_all)
+            ups_avg = sum(ups_all) / len(ups_all)
+            f1_syn_avg_all.append(f1_syn_avg)
+            f1_real_avg_all.append(f1_real_avg)
+            us_avg_all.append(us_avg)
+            pps_avg_all.append(pps_avg)
+            ups_avg_all.append(ups_avg)
+            print(f"Dataset {dataset_name} - Method {meth}")
+            print("Syn:", f1_syn_avg)
+            print("Real:", f1_real_avg)
+            print("us:", us_avg)
+            print("pps:", pps_avg)
+            print("ups:", ups_avg)
             print("\n")
 
-        if data != 'all':
-            break
+            # save results
+            meth_level = pd.DataFrame(
+                {'ups': ups_all+[ups_avg], 'us': us_all+[us_avg], 'pps': pps_all+[pps_avg],
+                 'F1_real': f1_real_all+[f1_real_avg], 'F1_syn': f1_syn_all+[f1_syn_avg]},
+            )
+            meth_level.to_csv(f'eval/gen_data/{dataset_name}/{meth}/results_{meth}.csv')
+        data_level = pd.DataFrame({'method': method_l, 'ups': ups_avg_all, 'us': us_avg_all, 'pps': pps_avg_all, 'F1 real': f1_real_avg_all, 'F1 syn': f1_syn_avg_all})
+        data_level.to_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv')
+        data_level_all.append(data_level)
+        data_level_winner_ups = data_level['method'][data_level['ups']==data_level['ups'].max()]
+        data_level_winner_us = data_level['method'][data_level['us']==data_level['us'].max()]
+        data_level_winner_pps = data_level['method'][data_level['pps']==data_level['pps'].max()]
+        data_level_winner[dataset_name] = ('ups: '+data_level_winner_ups[0], 'us: '+data_level_winner_us[0], 'pps: '+data_level_winner_pps[0])
+
+    if len(method_l) > 1 and len(dataset_l) > 1:
+        summary = pd.concat(data_level_all).select_dtypes('number').groupby(level=0).mean()
+        summary['method'] = data_level_all[0]['method']
+        summary = summary[list(data_level_all[0].columns)]
+        summary.to_csv('eval/results_summary.csv')
+        with open('data_winners.txt', 'w') as f:
+            f.writelines(data_level_winner)
 
 # start of command line call and loading of arguments
 if __name__ == "__main__":
@@ -394,13 +439,13 @@ if __name__ == "__main__":
 
     # arguments for evaluation
     parser_eval = subparsers.add_parser('eval', help='evaluates synthetic data')
-    parser_eval.add_argument('--data', type=str, required=False, default='all',
+    parser_eval.add_argument('--data', type=str, required=False, nargs='+', default=[],
                             help="Select dataset name, default iteratively takes all datasets")
     parser_eval.add_argument('--real_train_path', type=str, required=True, help="Path to real train datasets")
     parser_eval.add_argument('--gen_data_path', type=str, required=True, help="Path to synthetic datasets")
     parser_eval.add_argument('--real_test_path', type=str, required=True, help="Path to real test datasets")
     parser_eval.add_argument('--n_spl', type=int, required=False, default='10', help="Choose number of data splits")
-    parser_eval.add_argument('--method', type=str, required=False, default='all',
+    parser_eval.add_argument('--method', type=str, required=False, nargs='+', default=[],
                             help="Select method by name")  # tvae, gausscop, ctgan / arf / pzflow / knnmtd / mcgen / corgan / ensgen / genary / smote / priv_bayes, cart
     parser_eval.add_argument('--model', type=str, required=False, default='all',
                              help="Select model by name")  # NB, RF, DT, LG, (NN?)
