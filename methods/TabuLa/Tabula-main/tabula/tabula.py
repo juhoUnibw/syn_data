@@ -232,7 +232,8 @@ class Tabula:
             _cnt += 1
             if _cnt > 13 and already_generated == 0:
                 print("Nothing generated!")
-                break
+                df_gen = ""
+                return df_gen
 
         df_gen = df_gen.reset_index(drop=True)
 

@@ -221,6 +221,8 @@ def gen(data, n_spl, method, smpl_frac, test):
                     dpart = import_module('methods.dpart.dpart_gen')
                     gen_data = dpart.gen(train_set.copy(), feat.copy(), class_var, meth, smpl_frac, eps=0.5)
 
+                if type(gen_data) == str:   continue
+
                 # optional: remap original feature values
                 #data[feat] = data[feat].map(category_mapping)
 
