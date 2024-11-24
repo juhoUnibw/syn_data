@@ -141,7 +141,7 @@ def gen(data, n_spl, method, smpl_frac, test):
     else:
         dataset_l = dataset_names.keys()
 
-    for dataset_name, dataset_path in dataset_l:
+    for dataset_name in dataset_l:
 
         print("\n")
 
