@@ -47,8 +47,8 @@ dataset_names = \
         'eye': 'EEG Eye State/EEG Eye State.arff.txt'}
 
 # available methods
-methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan', 'ensgen', 'genary', 'smote',
-           'priv_bayes', 'cart', 'great', 'tabula']
+methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan',  'smote',
+           'priv_bayes', 'cart', 'great', 'tabula'] #'ensgen', 'genary',
 
 # ## Configuration and Dataset Prepraration
 
@@ -173,7 +173,7 @@ def gen(data, n_spl, method, smpl_frac, test):
 
             for meth in tqdm(method_l):
 
-                #print(f"\n METHOD {method} ...")
+                #print(f"\n METHOD {method} ...")gen_data = 0
 
                 # run data synthesis script
                 if meth in ('gausscop', 'tvae', 'ctgan'):
