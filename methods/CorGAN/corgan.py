@@ -37,7 +37,7 @@ def gen(trainSet, smpl_frac, class_var, feat, disc_feat_names):
     for cl in trainSet[class_var].unique():
         cmd = ['python', 'methods/CorGAN/cor-gan-master/Generative/corGAN/pytorch/CNN/MIMIC/wgancnnmimic.py',\
                                         '--DATASETPATH', 'methods/CorGAN/temp_data/temp_data.csv',\
-                                        '--batch_size', '4',\
+                                        '--batch_size', '8',\
                                         '--expPATH', 'methods/CorGAN/models',\
                                         '--training', 'True',\
                                         '--cl', '{}'.format(cl),\

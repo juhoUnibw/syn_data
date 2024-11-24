@@ -58,10 +58,10 @@ def gen(train_set, smpl_frac, gen_meth, disc_feat_names, cont_feat_names, class_
             synthesizer = CTGANSynthesizer(
                 metadata = metadata,
                 enforce_min_max_values = True, # clip numerical values to train data?
-                batch_size = 4, #500
-                pac = 4) # 10: requirement > batch_size % pac = 0
+                batch_size = 8, #500
+                pac = 8) # 10: requirement > batch_size % pac = 0
         if gen_meth == 'tvae':
-            synthesizer = TVAESynthesizer(metadata, batch_size=4)
+            synthesizer = TVAESynthesizer(metadata, batch_size=8)
         if gen_meth == 'gausscop':
             synthesizer = GaussianCopulaSynthesizer(
                 metadata, # required

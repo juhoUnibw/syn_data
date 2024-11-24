@@ -21,9 +21,8 @@ def gen(trainSet, disc_feat_names, smpl_frac, class_var):
     model.model.load_state_dict(torch.load("methods/TabuLa/Tabula-main/pretrained-model/model.pt", map_location=torch.device('cuda')), strict=False) # pre-trained model from paper (trained on Intrusion dataset). map_location=torch.device('cpu') only if no GPU available
     trainSet.columns = trainSet.columns.astype(str)
     model.fit(trainSet, conditional_col=str(class_var))
-    #model_path = "methods/TabuLa/saved_models"
-    #torch.save(model.model.state_dict(), model_path + "/model.pt")
-    #model.save(model_path)
+    model_path = "methods/TabuLa/Tabula-main/chkpt"
+    torch.save(model.model.state_dict(), model_path + "/model.pt")
     # model = model.load_from_dir(model_path)
     # model = Tabula.load_from_dir(model_path)
     gen_data = model.sample(n_samples=int(trainSet.shape[0]*smpl_frac), max_length=1000)
