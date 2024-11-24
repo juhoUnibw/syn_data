@@ -21,6 +21,8 @@ import argparse
 preprocessing = import_module('data.preprocessing') # preprocessing module
 from eval.pps import PPS
 from collections import Counter
+# from transformers.utils.logging import disable_progress_bar
+# disable_progress_bar()
 
 # available datasets and paths
 dataset_names = \
@@ -214,7 +216,7 @@ def gen(data, n_spl, method, smpl_frac, test):
                     gen_data = great.gen(train_set.copy(), smpl_frac, llm_id='distilgpt2') # distil-gpt2 / gpt2-medium
                 if meth == 'tabula': # sampling only works using gpu in standard code >> can be changed, though
                     tabula = import_module('methods.TabuLa.Tabula-main.tabula_gen') # https://github.com/zhao-zilong/tabula
-                    gen_data = tabula.gen(train_set.copy(), cat_feat_names.copy(), smpl_frac)
+                    gen_data = tabula.gen(train_set.copy(), cat_feat_names.copy(), smpl_frac, class_var)
                 if meth in ('priv_bayes', 'cart'): # synthpop package loads the parametric approach by default (was replaced with DT classifier class)
                     dpart = import_module('methods.dpart.dpart_gen')
                     gen_data = dpart.gen(train_set.copy(), feat.copy(), class_var, meth, smpl_frac, eps=0.5)
