@@ -136,9 +136,12 @@ def check_cl_size(train_set, test_set, class_var, feat):
 # data synthesis process
 def gen(data, n_spl, method, smpl_frac, test):
 
-    for dataset_name, dataset_path in dataset_names.items():
-        if args.data != 'all':
-            dataset_name, dataset_path = args.data, dataset_names[args.data]
+    if data != []:
+        dataset_l = data
+    else:
+        dataset_l = dataset_names.keys()
+
+    for dataset_name, dataset_path in dataset_l:
 
         print("\n")
 
@@ -167,13 +170,14 @@ def gen(data, n_spl, method, smpl_frac, test):
             train_set, test_set = check_cl_size(train_set, test_set, class_var, feat) # removes classes with sample size < 5
 
             if method != []:
-                method_l = [method]
+                method_l = method
             else:
                 method_l = methods
 
             for meth in tqdm(method_l):
 
-                #print(f"\n METHOD {method} ...")gen_data = 0
+                #print(f"\n METHOD {method} ...")
+                gen_data = ""
 
                 # run data synthesis script
                 if meth in ('gausscop', 'tvae', 'ctgan'):
@@ -222,7 +226,8 @@ def gen(data, n_spl, method, smpl_frac, test):
                     dpart = import_module('methods.dpart.dpart_gen')
                     gen_data = dpart.gen(train_set.copy(), feat.copy(), class_var, meth, smpl_frac, eps=0.5)
 
-                if type(gen_data) == str:   continue
+                if type(gen_data) == str:
+                    continue
 
                 # optional: remap original feature values
                 #data[feat] = data[feat].map(category_mapping)
@@ -428,10 +433,10 @@ if __name__ == "__main__":
     # arguments for data generation
     subparsers = parser.add_subparsers(dest='command')
     parser_gen = subparsers.add_parser('gen', help='generates synthetic data')
-    parser_gen.add_argument('--data', type=str, required=False, default='all',
-                            help="Select dataset name, default iteratively takes all datasets")
-    parser_gen.add_argument('--method', type=str, required=False, default='all',
-                            help="Select method by name")  # tvae, gausscop, ctgan / arf / pzflow / knnmtd / mcgen / corgan / ensgen / genary / smote / priv_bayes, cart
+    parser_gen.add_argument('--data', type=str, required=False, nargs='+', default=[],
+                             help="Select dataset name, default iteratively takes all datasets")
+    parser_gen.add_argument('--method', type=str, required=False, nargs='+', default=[],
+                             help="Select method by name")  # tvae, gausscop, ctgan / arf / pzflow / knnmtd / mcgen / corgan / ensgen / genary / smote / priv_bayes, cart / great / tabula
     parser_gen.add_argument('--n_spl', type=int, required=False, default='10', help="Choose number of data splits")
     parser_gen.add_argument('--smpl_frac', type=int, required=False, default=1,
                             help="Defines synthetic data size (fraction of training data size)")
