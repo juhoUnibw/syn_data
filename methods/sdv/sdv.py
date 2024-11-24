@@ -58,18 +58,10 @@ def gen(train_set, smpl_frac, gen_meth, disc_feat_names, cont_feat_names, class_
             synthesizer = CTGANSynthesizer(
                 metadata = metadata,
                 enforce_min_max_values = True, # clip numerical values to train data?
-                embedding_dim = 32, # 128
-                generator_dim= (64, 64), #(256, 256)
-                discriminator_dim = (64, 64), # (256, 256)
-                generator_lr = 0.0002,
-                generator_decay = 0.000001,
-                discriminator_lr = 0.0002,
-                discriminator_decay = 0.000001,
                 batch_size = 8, #500
-                epochs = 30, # 300
-                pac = 4) # 10
+                pac = 8) # 10: requirement > batch_size % pac = 0
         if gen_meth == 'tvae':
-            synthesizer = TVAESynthesizer(metadata)
+            synthesizer = TVAESynthesizer(metadata, batch_size=8)
         if gen_meth == 'gausscop':
             synthesizer = GaussianCopulaSynthesizer(
                 metadata, # required

@@ -18,7 +18,7 @@ def gen(trainSet, feat, smpl_frac, class_var):
     for cl in trainSet[class_var].unique():
         gen_meth = Flow(feat)
         data_cl = trainSet[trainSet[class_var]==cl]
-        gen_meth.train(data_cl, verbose=False)
+        gen_meth.train(data_cl, batch_size=8, verbose=False, progress_bar=False)
         gen_data_cl = gen_meth.sample(int(data_cl.shape[0] * smpl_frac))
         gen_data_cl[class_var] = [cl] * gen_data_cl.shape[0]
         gen_data_coll.append(gen_data_cl)

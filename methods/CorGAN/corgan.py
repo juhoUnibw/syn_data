@@ -35,18 +35,15 @@ def gen(trainSet, smpl_frac, class_var, feat, disc_feat_names):
 
     # trains synthetic data model with CorGan
     for cl in trainSet[class_var].unique():
-        cmd = ['python', '/Users/juho/Promotion/FakeData/Paper/IEEE/implementation/methods/CorGAN/cor-gan-master/Generative/corGAN/pytorch/CNN/MIMIC/wgancnnmimic.py',\
-                                        '--DATASETPATH', '/Users/juho/Promotion/FakeData/Paper/IEEE/implementation/methods/CorGAN/temp_data/temp_data.csv',\
-                                        '--n_epochs', '50',\
-                                        '--n_epochs_pretrain', '50',\
-                                        '--epoch_save_model_freq', '50',\
-                                        '--batch_size', '16',\
-                                        '--lr', '0.0001',\
-                                        '--expPATH', '/Users/juho/Promotion/FakeData/Paper/IEEE/implementation/methods/CorGAN/models',\
+        cmd = ['python', 'methods/CorGAN/cor-gan-master/Generative/corGAN/pytorch/CNN/MIMIC/wgancnnmimic.py',\
+                                        '--DATASETPATH', 'methods/CorGAN/temp_data/temp_data.csv',\
+                                        '--batch_size', '8',\
+                                        '--expPATH', 'methods/CorGAN/models',\
                                         '--training', 'True',\
                                         '--cl', '{}'.format(cl),\
                                         '--class_var', '{}'.format(class_var),\
-                                        '--smpl_frac', '{}'.format(smpl_frac)]
+                                        '--smpl_frac', '{}'.format(smpl_frac),\
+                                        '--cuda', 'True']
         output = subprocess.run(cmd, capture_output=True, text=True) # cmd: 50 epochs in real testing
         #print("Output:", output.stdout)
         #print("Error:", output.stderr)

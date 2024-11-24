@@ -1,5 +1,7 @@
 # python implementation available: https://pypi.org/project/arfpy/
 
+# paths to libraries (only needed if manual path was set)
+.libPaths("~/temp/lib")
 
 # libraries
 library(data.table)
@@ -8,8 +10,6 @@ library(foreach)
 library(truncnorm)
 library(matrixStats)
 library(arf)
-#print(.libPaths())
-
 
 suppressWarnings({
 
@@ -22,7 +22,6 @@ train_data <- read.csv('methods/ARF/train_data.csv', row.names = 1)
 
 # Train the ARF
 arf <- adversarial_rf(train_data, verbose = FALSE) # for discriminator accuracies change verbose to TRUE
-
 # Estimate distribution parameters
 psi <- forde(arf, train_data)
 

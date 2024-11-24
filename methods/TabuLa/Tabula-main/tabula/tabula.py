@@ -20,6 +20,8 @@ from tabula.tabula_start import TabulaStart, CategoricalStart, ContinuousStart, 
 from tabula.tabula_trainer import TabulaTrainer
 from tabula.tabula_utils import _array_to_dataframe, _get_column_distribution, _convert_tokens_to_text, \
     _convert_text_to_tabular_data
+from transformers.utils.logging import disable_progress_bar
+disable_progress_bar()
 
 
 class Tabula:
@@ -152,7 +154,9 @@ class Tabula:
         training_args = TrainingArguments(self.experiment_dir,
                                           num_train_epochs=self.epochs,
                                           per_device_train_batch_size=self.batch_size,
-                                          save_strategy="no",
+                                          save_total_limit=2,
+                                          disable_tqdm=True,
+                                          save_strategy='epoch',
                                           **self.train_hyperparameters)
         tabula_trainer = TabulaTrainer(self.model, training_args, train_dataset=tabula_ds, tokenizer=self.tokenizer,
                                      data_collator=TabulaDataCollator(self.tokenizer))
@@ -160,6 +164,7 @@ class Tabula:
         # Start training
         logging.info("Start training...")
         tabula_trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+
         return tabula_trainer
 
     def sample(self, n_samples: int,
@@ -195,33 +200,40 @@ class Tabula:
         df_gen = pd.DataFrame(columns=self.columns)
 
         # Start generation process
-        with tqdm(total=n_samples) as pbar:
-            already_generated = 0
-            while n_samples > df_gen.shape[0]:
-                start_tokens = tabula_start.get_start_tokens(k)
-                start_tokens = torch.tensor(start_tokens).to(device)
+        #with tqdm(total=n_samples) as pbar:
+        already_generated = 0
+        _cnt = 0
+        while n_samples > df_gen.shape[0]:
+            start_tokens = tabula_start.get_start_tokens(k)
+            start_tokens = torch.tensor(start_tokens).to(device)
 
-                # Generate tokens
-                tokens = self.model.generate(input_ids=start_tokens, max_length=max_length,
-                                             do_sample=True, temperature=temperature, pad_token_id=50256)
+            # Generate tokens
+            tokens = self.model.generate(input_ids=start_tokens, max_length=max_length,
+                                         do_sample=True, temperature=temperature, pad_token_id=50256)
 
-                # Convert tokens back to tabular data
-                text_data = _convert_tokens_to_text(tokens, self.tokenizer)
-                df_gen = _convert_text_to_tabular_data(text_data, df_gen)
+            # Convert tokens back to tabular data
+            text_data = _convert_tokens_to_text(tokens, self.tokenizer)
+            df_gen = _convert_text_to_tabular_data(text_data, df_gen)
 
-                # Remove rows with flawed numerical values
-                for i_num_cols in self.num_cols:
-                    df_gen = df_gen[pd.to_numeric(df_gen[i_num_cols], errors='coerce').notnull()]
+            # Remove rows with flawed numerical values
+            for i_num_cols in self.num_cols:
+                df_gen = df_gen[pd.to_numeric(df_gen[i_num_cols], errors='coerce').notnull()]
 
-                df_gen[self.num_cols] = df_gen[self.num_cols].astype(float)
+            df_gen[self.num_cols] = df_gen[self.num_cols].astype(float)
 
-                # Remove rows with missing values
-                df_gen = df_gen.drop(df_gen[df_gen.isna().any(axis=1)].index)
+            # Remove rows with missing values
+            df_gen = df_gen.drop(df_gen[df_gen.isna().any(axis=1)].index)
 
-                # Update process bar
-                pbar.update(df_gen.shape[0] - already_generated)
-                already_generated = df_gen.shape[0]
+            # Update process bar
+            #pbar.update(df_gen.shape[0] - already_generated)
+            already_generated = df_gen.shape[0]
 
+            # Check if we are actually generating synthetic samples and if not, break everything
+            _cnt += 1
+            if _cnt > 13 and already_generated == 0:
+                print("Nothing generated!")
+                df_gen = ""
+                return df_gen
 
         df_gen = df_gen.reset_index(drop=True)
 
