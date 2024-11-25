@@ -240,9 +240,6 @@ def gen(data, n_spl, method, smpl_frac, test):
                 train_set.to_csv(f'eval/train_data/{dataset_name}/{meth}/spl_{i}.csv')
                 test_set.to_csv(f'eval/test_data/{dataset_name}/{meth}/spl_{i}.csv')
 
-        if args.data != 'all':
-            break
-
 
 def ens_pred(gen_data, train_set, test_set, feat, class_var, model):
     ensemblePreds = []
