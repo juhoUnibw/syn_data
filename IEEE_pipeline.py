@@ -162,7 +162,7 @@ def gen(data, n_spl, method, smpl_frac, test):
         f1_syn_all = []
 
         # experiment loop
-        for i in tqdm(range(n_spl)):
+        for i in range(n_spl):
             i += 1
 
             # prepares training / test data
