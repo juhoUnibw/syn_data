@@ -48,7 +48,7 @@ public class generativeModel{
 			
 	//static String output_name =	dataSetName + "_syn_";			// Output name of the synthetic dataset
 	//static int numoflabel = 3;									// Total number of classes of the dataset				
-	static int[] k_list = new int[]{20, 40, 60, 80, 100};  	        //  Sample size of each cluster
+	static int[] k_list = new int[]{2, 40, 60, 80, 100};  	        //  Sample size of each cluster
 	static double[]epsilon_list = new double[]{0.5};  // Privacy budget of each dataset. Orig: {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1}
 	//static int numofEXP = 10;										//Number of dataset to be generated from (k, epsilon) group
 	//-------------------------------------------------------------------------------------------------------------//
