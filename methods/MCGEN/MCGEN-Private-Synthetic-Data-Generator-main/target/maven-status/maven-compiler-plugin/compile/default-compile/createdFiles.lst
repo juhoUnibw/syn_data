@@ -2,6 +2,6 @@ MCGEN_Demo/SynDataGeneration/LibSVMtoCSV.class
 MCGEN_Demo/SynDataGeneration/getIFS_HierarchicalClustering.class
 MCGEN_Demo/SynDataGeneration/Record.class
 MCGEN_Demo/SynDataGeneration/CSVToLibsvm.class
-MCGEN_Demo/SynDataGeneration/DataSetSplit.class
 MCGEN_Demo/SynDataGeneration/generativeModel.class
+MCGEN_Demo/SynDataGeneration/DataSetSplit.class
 MCGEN_Demo/SynDataGeneration/microaggregation.class

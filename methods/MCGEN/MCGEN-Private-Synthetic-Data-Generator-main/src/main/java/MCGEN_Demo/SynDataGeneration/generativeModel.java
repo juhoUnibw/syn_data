@@ -243,7 +243,7 @@ public class generativeModel{
 	public static List<String> readConfigValues() {
         List<String> values = new ArrayList<>();
         try {
-			String fileName = "/Users/juho/Promotion/FakeData/Paper/IEEE/implementation/methods/MCGEN/config.txt";
+			String fileName = "/home/julian_hoellig/IEEE/implementation/methods/MCGEN/config.txt";
             File configFile = new File(fileName);
             Scanner scanner = new Scanner(configFile);
 

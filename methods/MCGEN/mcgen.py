@@ -75,7 +75,7 @@ def gen(trainSet, smpl_frac, class_var, dataset_name):
                     header=False, index=False)
     
     # runs mcgen for data generation
-    cmd = 'cd methods/MCGEN/MCGEN-Private-Synthetic-Data-Generator-main && mvn exec:java -Dexec.mainClass="MCGEN_Demo.SynDataGeneration.generativeModel"'
+    cmd = 'cd methods/MCGEN/MCGEN-Private-Synthetic-Data-Generator-main && mvn exec:java -Djava.io.tmpdir=/home/julian_hoellig/mytmp -Dexec.mainClass="MCGEN_Demo.SynDataGeneration.generativeModel"'
     out = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
     # there is a specified number of synthetic datasets available in the dir - they need to be extracted and tested
