@@ -39,10 +39,9 @@ dataset_names = \
         'eye': 'EEG Eye State/EEG Eye State.arff.txt'}
 
 # available methods
+#methods = ['ctgan']
 methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan',  'smote',
-           'priv_bayes', 'cart']
-#methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan',  'smote',
-           #'priv_bayes', 'cart', 'great', 'tabula'] #'ensgen', 'genary',
+           'priv_bayes', 'cart'] #'great', 'tabula', 'ensgen', 'genary',
 
 # ## Configuration and Dataset Prepraration
 
@@ -310,7 +309,7 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
             for i in tqdm(range(n_spl)):
                 i += 1
 
-                print(f"\n METHOD {meth} ... split {i}")
+                #print(f"\n METHOD {meth} ... split {i}")
 
                 train_file_path = os.path.join(real_train_path, dataset_name, meth, f'spl_{i}.csv')
                 train_set = pd.read_csv(train_file_path, index_col=0)
@@ -397,7 +396,7 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
             us_avg_all.append(us_avg)
             pps_avg_all.append(pps_avg)
             ups_avg_all.append(ups_avg)
-            print(f"Dataset {dataset_name} - Method {meth}")
+            print(f"\nDataset {dataset_name} - Method {meth}")
             print("Syn:", f1_syn_avg)
             print("Real:", f1_real_avg)
             print("us:", us_avg)
@@ -417,15 +416,16 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
         data_level_winner_ups = data_level['method'][data_level['ups']==data_level['ups'].max()]
         data_level_winner_us = data_level['method'][data_level['us']==data_level['us'].max()]
         data_level_winner_pps = data_level['method'][data_level['pps']==data_level['pps'].max()]
-        data_level_winner[dataset_name] = ('ups: '+data_level_winner_ups[0], 'us: '+data_level_winner_us[0], 'pps: '+data_level_winner_pps[0])
+        data_level_winner[dataset_name] = ('ups: '+str(data_level_winner_ups.to_list()), 'us: '+str(data_level_winner_us.to_list()), 'pps: '+str(data_level_winner_pps.to_list()))
 
     if len(method_l) > 1 and len(dataset_l) > 1:
         summary = pd.concat(data_level_all).select_dtypes('number').groupby(level=0).mean()
         summary['method'] = data_level_all[0]['method']
         summary = summary[list(data_level_all[0].columns)]
         summary.to_csv('eval/results_summary.csv')
-        with open('data_winners.txt', 'w') as f:
-            f.writelines(data_level_winner)
+        with open('eval/data_winners.txt', 'w') as f:
+            for k in data_level_winner.keys():
+                f.writelines(f"{k}\n{data_level_winner[k]}\n\n")
 
 # start of command line call and loading of arguments
 if __name__ == "__main__":
