@@ -1,13 +1,8 @@
-import numpy as np
 import pandas as pd
 import random
 from importlib import reload, import_module
-import statistics
-import scipy.stats as stats
 import warnings
-
 from traitlets import Union
-
 warnings.filterwarnings('ignore')
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
@@ -17,9 +12,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, classification_report
 import os, glob
 from tqdm import tqdm
-import sys
-#sys.path.append("/Users/juho/Promotion/FakeData/Paper/IEEE/data") # replace with import_module?
-#import preprocessing
 import argparse
 preprocessing = import_module('data.preprocessing') # preprocessing module
 from eval.pps import PPS
@@ -48,7 +40,9 @@ dataset_names = \
 
 # available methods
 methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan',  'smote',
-           'priv_bayes', 'cart', 'great', 'tabula'] #'ensgen', 'genary',
+           'priv_bayes', 'cart']
+#methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan',  'smote',
+           #'priv_bayes', 'cart', 'great', 'tabula'] #'ensgen', 'genary',
 
 # ## Configuration and Dataset Prepraration
 
@@ -134,7 +128,7 @@ def check_cl_size(train_set, test_set, class_var, feat):
 
 
 # data synthesis process
-def gen(data, n_spl, method, smpl_frac, test):
+def gen(data, n_spl, method, smpl_frac, splits, test):
 
     if data != []:
         dataset_l = data
@@ -162,12 +156,24 @@ def gen(data, n_spl, method, smpl_frac, test):
         f1_syn_all = []
 
         # experiment loop
-        for i in range(n_spl):
+        for i in [6,7,8,9]:
             i += 1
 
+            # loads data if available (make sure the datasets have the following naming: 'spl_[1,n_spl].csv')
+            if splits:
+                train_set = pd.read_csv(f'eval/train_data/{dataset_name}/spl_{i}.csv', index_col=0)
+                test_set = pd.read_csv(f'eval/test_data/{dataset_name}/spl_{i}.csv', index_col=0)
+                if type(train_set.columns[0]) != type(class_var):
+                    class_var = type(train_set.columns[0])(class_var)
+                    feat = list(map(type(train_set.columns[0]), feat))
+                    cat_feat_names = list(map(type(train_set.columns[0]), cat_feat_names))
+                    num_feat_names = list(map(type(train_set.columns[0]), num_feat_names))
+
+
             # prepares training / test data
-            train_set, test_set = prepData(dataset, class_var)
-            train_set, test_set = check_cl_size(train_set, test_set, class_var, feat) # removes classes with sample size < 5
+            else:
+                train_set, test_set = prepData(dataset, class_var)
+                train_set, test_set = check_cl_size(train_set, test_set, class_var, feat) # removes classes with sample size < 5
 
             if method != []:
                 method_l = method
@@ -439,6 +445,8 @@ if __name__ == "__main__":
                             help="Defines synthetic data size (fraction of training data size)")
     parser_gen.add_argument('--test', type=bool, required=False, default=False,
                             help="True for test purposes. Reduces data size.")
+    parser_gen.add_argument('--splits', type=bool, required=False, default=False,
+                            help="True if datasets splits can be loaded from disk.")
 
     # arguments for evaluation
     parser_eval = subparsers.add_parser('eval', help='evaluates synthetic data')
@@ -458,7 +466,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.command == 'gen':
-        gen(args.data, args.n_spl, args.method, args.smpl_frac, args.test)
+        gen(args.data, args.n_spl, args.method, args.smpl_frac, args.splits, args.test)
     if args.command == 'eval':
         eval(args.data, args.real_train_path, args.gen_data_path, args.real_test_path, args.n_spl, args.method, args.model, args.weights)
 
