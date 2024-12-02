@@ -39,11 +39,10 @@ dataset_names = \
         'eye': 'EEG Eye State/EEG Eye State.arff.txt'}
 
 # available methods
-#methods = ['ctgan']
 methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan',  'smote',
            'priv_bayes', 'cart'] #'great', 'tabula', 'ensgen', 'genary',
 
-# ## Configuration and Dataset Prepraration
+# Configuration and Dataset Prepraration
 
 def load_data(dataset_name):
     reload(preprocessing)
@@ -140,12 +139,6 @@ def gen(data, n_spl, method, smpl_frac, splits, test):
 
         dataset, class_var, cat_feat_names, num_feat_names = load_data(dataset_name)
 
-        if args.test:
-            if dataset.shape[0] > 500:
-                i=0
-                while i < 2:
-                    dataset = dataset.sample(n=500, random_state=22)
-                    i = len(dataset[class_var].unique())
         cols = list(dataset.columns)
         cols.remove(class_var)
         feat = cols
@@ -155,7 +148,7 @@ def gen(data, n_spl, method, smpl_frac, splits, test):
         f1_syn_all = []
 
         # experiment loop
-        for i in [6,7,8,9]:
+        for i in range(n_spl):
             i += 1
 
             # loads data if available (make sure the datasets have the following naming: 'spl_[1,n_spl].csv')
@@ -173,6 +166,15 @@ def gen(data, n_spl, method, smpl_frac, splits, test):
             else:
                 train_set, test_set = prepData(dataset, class_var)
                 train_set, test_set = check_cl_size(train_set, test_set, class_var, feat) # removes classes with sample size < 5
+
+            if args.test:
+                if train_set.shape[0] > 1000:
+                    z = 0
+                    while z < 2:
+                        train_set = train_set.sample(n=5000, random_state=22)
+                        z = len(train_set[class_var].unique())
+
+            print(train_set.shape[0])
 
             if method != []:
                 method_l = method
