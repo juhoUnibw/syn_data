@@ -168,13 +168,12 @@ def gen(data, n_spl, method, smpl_frac, splits, test):
                 train_set, test_set = check_cl_size(train_set, test_set, class_var, feat) # removes classes with sample size < 5
 
             if args.test:
-                if train_set.shape[0] > 1000:
+                if train_set.shape[0] > 5000:
                     z = 0
                     while z < 2:
                         train_set = train_set.sample(n=5000, random_state=22)
+                        test_set = test_set.sample(n=5000, random_state=22)
                         z = len(train_set[class_var].unique())
-
-            print(train_set.shape[0])
 
             if method != []:
                 method_l = method
