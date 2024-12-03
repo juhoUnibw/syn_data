@@ -7,7 +7,6 @@ from tqdm import tqdm
 tqdm.pandas()
 import cupy as cp
 
-
 class PPS:
     def __init__(self, real_data, train_data, syn_data, cat_feat, num_feat, class_var):
         self.real_data = real_data
@@ -41,14 +40,21 @@ class PPS:
         self.train_data_processed = self.preprocess(self.train_data.copy())
         self.syn_data_processed = self.preprocess(self.syn_data.copy())
 
+
     # compute nearest neighbor similarity
     def compute_similarity(self, r, dataset, cat_sim):
+
         # other solutions: one-hot-encoding for cat features; Hamming distance between cat features, and cosine between numerical;
         if len(cat_sim.shape) > 2:
             print("incorrect cat_sim")
         r[self.cat_feat] = 1
         dataset[self.cat_feat] = cat_sim
-        similarities = cosine_similarity(dataset.values, r.values.reshape(1, -1))[:,0]
+        dot_product = np.dot(cp.array(dataset.values), cp.array(r.values))
+        magnitude_A = np.linalg.norm(cp.array(dataset.values), axis=1)
+        magnitude_B = np.linalg.norm(cp.array(r.values))
+        similarities = dot_product / (magnitude_A * magnitude_B)
+        similarities = cp.asnumpy(similarities)
+        #similarities = cosine_similarity(dataset.values, r.values.reshape(1, -1))[:,0]
 
         return np.sort(similarities)[-2:], similarities # if r = syn_r => nn_similarity -> [-1] else -> [-2]
 
@@ -58,14 +64,21 @@ class PPS:
         similarities = self.compute_similarity(s, dataset.copy(), cat_sim)[1]
         return dataset[similarities >= threshold] # index or col?
 
-    # Find unique match for training record
-    def find_unique_match(self, t, matches):
-        disclosure_risks_t = []
-        for _, train_matches, d in tqdm(matches):
-            disclosure_risks_t.append(d) if (train_matches == t).all(axis=1).any() else disclosure_risks_t.append(0) # append 0 if t not in train_matches (so that index of risks aligns with index of matches; important for next step)
-        i = disclosure_risks_t.index(max(disclosure_risks_t)) # index of highest disclosure risk
-        unique_match = matches[i]
-        return unique_match
+
+    def find_unique_match(self, train_set, matches):
+        disclosure_risks_all = []
+        train_set = cp.asarray(train_set.values)
+        for _, train_matches, d in matches:
+            match_found = cp.any(cp.all(cp.asarray(train_matches.values)[:, None, :] == train_set[None, :, :], axis=2), axis=0)
+            disclosure_risks = cp.where(match_found, d, 0)
+            disclosure_risks_all.append(disclosure_risks)
+
+        disclosure_risks_all = cp.vstack(disclosure_risks_all)
+        non_zero_cols = cp.any(disclosure_risks_all != 0, axis=0)
+        disclosure_risks_all = disclosure_risks_all[:, non_zero_cols]
+        high_risks = cp.amax(disclosure_risks_all, axis=0)
+        return cp.asnumpy(high_risks)
+
 
     # Step 3: Perform membership inference analysis
     def run_analysis(self):
@@ -74,16 +87,16 @@ class PPS:
         self.preprocess_datasets()
 
         # Compute global similarity threshold for real data
-        print("compute sim mat")
         cat_sim = (cp.array(self.real_data_processed[self.cat_feat].values[:, np.newaxis]) == cp.array(self.real_data_processed[self.cat_feat].values[np.newaxis, :]).astype(int))  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
-        print("compute sim")
+        cat_sim = cp.asnumpy(cat_sim)
+        cat_sim = cat_sim + 0.0000001 # necessary, because otherwise the magnitude in cosine calculation generates nan values (if vector=0)
         global_similarities = self.real_data_processed.apply(
             lambda r: self.compute_similarity(r.copy(),self.real_data_processed.copy(),cat_sim[self.real_data_processed.index.get_loc(r.name)])[0][0], axis=1)
         global_threshold = np.mean(global_similarities)
 
         # Analyze each synthetic record
         #for _, s in tqdm(self.syn_data_processed.iterrows(),total=self.real_data_processed.shape[0], leave=True, desc="Over syn"):
-        for _, s in tqdm(self.syn_data_processed.iterrows()):
+        for _, s in self.syn_data_processed.iterrows():
 
             # Find real matches within the threshold
             real_matches = self.find_matches(s.copy(), self.real_data_processed.copy(), global_threshold)
@@ -91,7 +104,8 @@ class PPS:
                 continue
 
             # calculate local threshold for synthetic record (s)
-            cat_sim = (real_matches[self.cat_feat].values[:, np.newaxis] == real_matches[self.cat_feat].values[np.newaxis, :]).astype(int)  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
+            cat_sim = (cp.array(real_matches[self.cat_feat].values[:, np.newaxis]) == cp.array(real_matches[self.cat_feat].values[np.newaxis, :]).astype(int))  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
+            cat_sim = cp.asnumpy(cat_sim)
             local_similarities = real_matches.apply(
                 lambda r: self.compute_similarity(r.copy(), real_matches.copy(), cat_sim[real_matches.index.get_loc(r.name)])[0][0], axis=1)
             local_threshold = np.mean(local_similarities)
@@ -113,20 +127,14 @@ class PPS:
             self.pps = 1
             return self.pps
 
-        print("loop over")
         # compute precision
-        print("pr")
         self.precision = np.mean(np.array(list(map(lambda x: x[2], self.matches)))) # average over all disclosure risks in matches
 
         # compute recall based on unique matches
-        print("um")
-        unique_matches = self.train_data_processed.apply(lambda t: self.find_unique_match(t.copy(), self.matches.copy()), axis=1)
-        print("re")
-        self.recall = np.sum(np.array(list(map(lambda x: x[2], unique_matches)))) / self.train_data.shape[0]
+        unique_matches = self.find_unique_match(self.train_data_processed.copy(), self.matches.copy())
+        self.recall = np.sum(unique_matches) / self.train_data.shape[0]
 
-        print("pps")
         # Step 5: Compute Privacy Protection Score (PPS)
         self.pps = 1 - (self.precision + self.recall) / 2
-        print("over")
         return self.pps
 

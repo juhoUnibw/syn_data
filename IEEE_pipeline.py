@@ -329,9 +329,7 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
                         s.columns = s.columns.astype(ct)
 
                     pps_obj = PPS(real_set, train_set, gen_data, cat_feat_names, num_feat_names, class_var)
-                    print("start pps")
                     pps = pps_obj.run_analysis()
-                    print("start pps")
                     pps_all.append(pps)
 
                     # evalauate f1 score on ML models trained on real and synthetic data
