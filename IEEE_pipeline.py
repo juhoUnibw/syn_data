@@ -277,68 +277,97 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
     data_level_all = []
     data_level_winner = {}
 
-    if data != []:
-        dataset_l = data
-    else:
-        dataset_l = dataset_names.keys()
+    if args.calc:
 
-    for dataset_name in dataset_l:
-
-        dataset, class_var, cat_feat_names, num_feat_names = load_data(dataset_name)
-        cols = list(dataset.columns)
-        cols.remove(class_var)
-        feat = cols
-
-        if method != []:
-            method_l = method
+        if data != []:
+            dataset_l = data
         else:
-            method_l = methods
+            dataset_l = dataset_names.keys()
 
-        f1_real_avg_all = []
-        f1_syn_avg_all = []
-        us_avg_all = []
-        pps_avg_all = []
-        ups_avg_all = []
+        for dataset_name in dataset_l:
 
-        for meth in tqdm(method_l):
+            dataset, class_var, cat_feat_names, num_feat_names = load_data(dataset_name)
+            cols = list(dataset.columns)
+            cols.remove(class_var)
+            feat = cols
 
-            pps_all = []
-            f1_real_all = []
-            f1_syn_all = []
-            us_all = []
-            ups_all = []
+            if method != []:
+                method_l = method
+            else:
+                method_l = methods
 
-            for i in tqdm(range(n_spl)):
-                i += 1
+            f1_real_avg_all = []
+            f1_syn_avg_all = []
+            us_avg_all = []
+            pps_avg_all = []
+            ups_avg_all = []
 
-                #print(f"\n METHOD {meth} ... split {i}")
+            for meth in tqdm(method_l):
 
-                train_file_path = os.path.join(real_train_path, dataset_name, meth, f'spl_{i}.csv')
-                train_set = pd.read_csv(train_file_path, index_col=0)
-                gen_file_path = os.path.join(gen_data_path, dataset_name, meth, f'spl_{i}.csv')
-                gen_data = pd.read_csv(gen_file_path, index_col=0)
-                test_file_path = os.path.join(real_test_path, dataset_name, meth, f'spl_{i}.csv')
-                test_set = pd.read_csv(test_file_path, index_col=0)
-                real_set = pd.concat([train_set, test_set], axis=0) # whole dataset
+                pps_all = []
+                f1_real_all = []
+                f1_syn_all = []
+                us_all = []
+                ups_all = []
 
-                ct = dataset.columns.dtype
-                sets = [train_set, test_set, real_set, gen_data]
-                for s in sets:
-                    s.columns = s.columns.astype(ct)
+                for i in tqdm(range(n_spl)):
+                    i += 1
 
-                pps_obj = PPS(real_set, train_set, gen_data, cat_feat_names, num_feat_names, class_var)
-                pps = pps_obj.run_analysis()
-                pps_all.append(pps)
+                    #print(f"\n METHOD {meth} ... split {i}")
 
-                # evalauate f1 score on ML models trained on real and synthetic data
-                if meth == 'ensgen': # part of the ensgen evaluation happens inside the script => no calculation for gen_data here
-                    # Training and test of model >> X_train is one synthetic dataset, X_test the real test data (integrate this part in the evaluation script)
+                    train_file_path = os.path.join(real_train_path, dataset_name, meth, f'spl_{i}.csv')
+                    train_set = pd.read_csv(train_file_path, index_col=0)
+                    gen_file_path = os.path.join(gen_data_path, dataset_name, meth, f'spl_{i}.csv')
+                    gen_data = pd.read_csv(gen_file_path, index_col=0)
+                    test_file_path = os.path.join(real_test_path, dataset_name, meth, f'spl_{i}.csv')
+                    test_set = pd.read_csv(test_file_path, index_col=0)
+                    real_set = pd.concat([train_set, test_set], axis=0) # whole dataset
+
+                    ct = dataset.columns.dtype
+                    sets = [train_set, test_set, real_set, gen_data]
+                    for s in sets:
+                        s.columns = s.columns.astype(ct)
+
+                    pps_obj = PPS(real_set, train_set, gen_data, cat_feat_names, num_feat_names, class_var)
+                    print("start pps")
+                    pps = pps_obj.run_analysis()
+                    print("start pps")
+                    pps_all.append(pps)
+
+                    # evalauate f1 score on ML models trained on real and synthetic data
+                    if meth == 'ensgen': # part of the ensgen evaluation happens inside the script => no calculation for gen_data here
+                        # Training and test of model >> X_train is one synthetic dataset, X_test the real test data (integrate this part in the evaluation script)
+                        if model != 'all':
+                            ens_preds = ens_pred(gen_data, train_set, test_set, feat, class_var, model)
+                            # calculates score of ensemble model and the average score of the individual datasets
+                            f1_syn = f1_score(test_set[class_var], ens_preds, average='macro')
+                            f1_real, preds = testClf(train_set[feat], train_set[class_var], test_set[feat], test_set[class_var], 'real',
+                                                     model, printScore=False)
+                            us = f1_syn / f1_real
+                            f1_real_all.append(f1_real)
+                            f1_syn_all.append(f1_syn)
+                            us_all.append(us)
+                        else:
+                            f1_real_models = []
+                            f1_syn_models = []
+                            for model in ['kNN', 'NB', 'LG', 'DT', 'RF']:
+                                ens_preds = ens_pred(gen_data, train_set, test_set, feat, class_var, model)
+                                # calculates score of ensemble model and the average score of the individual datasets
+                                f1_syn = f1_score(test_set[class_var], ens_preds, average='macro')
+                                f1_real, preds = testClf(train_set[feat], train_set[class_var], test_set[feat],
+                                                         test_set[class_var], 'real', model, printScore=False)
+                                f1_real_models.append(f1_real)
+                                f1_syn_models.append(f1_syn)
+                            f1_real_models_avg = sum(f1_real_models) / len(f1_real_models)
+                            f1_syn_models_avg = sum(f1_syn_models) / len(f1_syn_models)
+                            us = f1_syn_models_avg / f1_real_models_avg
+                            f1_real_all.append(f1_real_models_avg)
+                            f1_syn_all.append(f1_syn_models_avg)
+                            us_all.append(us)
+
                     if model != 'all':
-                        ens_preds = ens_pred(gen_data, train_set, test_set, feat, class_var, model)
-                        # calculates score of ensemble model and the average score of the individual datasets
-                        f1_syn = f1_score(test_set[class_var], ens_preds, average='macro')
-                        f1_real, preds = testClf(train_set[feat], train_set[class_var], test_set[feat], test_set[class_var], 'real',
-                                                 model, printScore=False)
+                        f1_real, preds = testClf(train_set[feat], train_set[class_var], test_set[feat], test_set[class_var], 'real', model, printScore=False)
+                        f1_syn, preds = testClf(gen_data[feat], gen_data[class_var], test_set[feat], test_set[class_var], 'syn', model, printScore=False)
                         us = f1_syn / f1_real
                         f1_real_all.append(f1_real)
                         f1_syn_all.append(f1_syn)
@@ -347,11 +376,8 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
                         f1_real_models = []
                         f1_syn_models = []
                         for model in ['kNN', 'NB', 'LG', 'DT', 'RF']:
-                            ens_preds = ens_pred(gen_data, train_set, test_set, feat, class_var, model)
-                            # calculates score of ensemble model and the average score of the individual datasets
-                            f1_syn = f1_score(test_set[class_var], ens_preds, average='macro')
-                            f1_real, preds = testClf(train_set[feat], train_set[class_var], test_set[feat],
-                                                     test_set[class_var], 'real', model, printScore=False)
+                            f1_real, preds = testClf(train_set[feat], train_set[class_var], test_set[feat], test_set[class_var],'real', model, printScore=False)
+                            f1_syn, preds = testClf(gen_data[feat], gen_data[class_var], test_set[feat], test_set[class_var],'syn', model, printScore=False)
                             f1_real_models.append(f1_real)
                             f1_syn_models.append(f1_syn)
                         f1_real_models_avg = sum(f1_real_models) / len(f1_real_models)
@@ -361,66 +387,51 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
                         f1_syn_all.append(f1_syn_models_avg)
                         us_all.append(us)
 
-                if model != 'all':
-                    f1_real, preds = testClf(train_set[feat], train_set[class_var], test_set[feat], test_set[class_var], 'real', model, printScore=False)
-                    f1_syn, preds = testClf(gen_data[feat], gen_data[class_var], test_set[feat], test_set[class_var], 'syn', model, printScore=False)
-                    us = f1_syn / f1_real
-                    f1_real_all.append(f1_real)
-                    f1_syn_all.append(f1_syn)
-                    us_all.append(us)
-                else:
-                    f1_real_models = []
-                    f1_syn_models = []
-                    for model in ['kNN', 'NB', 'LG', 'DT', 'RF']:
-                        f1_real, preds = testClf(train_set[feat], train_set[class_var], test_set[feat], test_set[class_var],'real', model, printScore=False)
-                        f1_syn, preds = testClf(gen_data[feat], gen_data[class_var], test_set[feat], test_set[class_var],'syn', model, printScore=False)
-                        f1_real_models.append(f1_real)
-                        f1_syn_models.append(f1_syn)
-                    f1_real_models_avg = sum(f1_real_models) / len(f1_real_models)
-                    f1_syn_models_avg = sum(f1_syn_models) / len(f1_syn_models)
-                    us = f1_syn_models_avg / f1_real_models_avg
-                    f1_real_all.append(f1_real_models_avg)
-                    f1_syn_all.append(f1_syn_models_avg)
-                    us_all.append(us)
+                    # utility-privacy-score
+                    ups = w_us*us + w_pps*pps
+                    ups_all.append(ups)
 
-                # utility-privacy-score
-                ups = w_us*us + w_pps*pps
-                ups_all.append(ups)
+                # presents final results for each dataset
+                f1_syn_avg = sum(f1_syn_all) / len(f1_syn_all)
+                f1_real_avg = sum(f1_real_all) / len(f1_real_all)
+                us_avg = sum(us_all) / len(us_all)
+                pps_avg = sum(pps_all) / len(pps_all)
+                ups_avg = sum(ups_all) / len(ups_all)
+                f1_syn_avg_all.append(f1_syn_avg)
+                f1_real_avg_all.append(f1_real_avg)
+                us_avg_all.append(us_avg)
+                pps_avg_all.append(pps_avg)
+                ups_avg_all.append(ups_avg)
+                print(f"\nDataset {dataset_name} - Method {meth}")
+                print("Syn:", f1_syn_avg)
+                print("Real:", f1_real_avg)
+                print("us:", us_avg)
+                print("pps:", pps_avg)
+                print("ups:", ups_avg)
+                print("\n")
 
-            # presents final results for each dataset
-            f1_syn_avg = sum(f1_syn_all) / len(f1_syn_all)
-            f1_real_avg = sum(f1_real_all) / len(f1_real_all)
-            us_avg = sum(us_all) / len(us_all)
-            pps_avg = sum(pps_all) / len(pps_all)
-            ups_avg = sum(ups_all) / len(ups_all)
-            f1_syn_avg_all.append(f1_syn_avg)
-            f1_real_avg_all.append(f1_real_avg)
-            us_avg_all.append(us_avg)
-            pps_avg_all.append(pps_avg)
-            ups_avg_all.append(ups_avg)
-            print(f"\nDataset {dataset_name} - Method {meth}")
-            print("Syn:", f1_syn_avg)
-            print("Real:", f1_real_avg)
-            print("us:", us_avg)
-            print("pps:", pps_avg)
-            print("ups:", ups_avg)
-            print("\n")
+                # save results
+                meth_level = pd.DataFrame(
+                    {'ups': ups_all+[ups_avg], 'us': us_all+[us_avg], 'pps': pps_all+[pps_avg],
+                     'F1_real': f1_real_all+[f1_real_avg], 'F1_syn': f1_syn_all+[f1_syn_avg]},
+                )
+                meth_level.to_csv(f'eval/gen_data/{dataset_name}/{meth}/results_{meth}.csv')
+            data_level = pd.DataFrame({'method': method_l, 'ups': ups_avg_all, 'us': us_avg_all, 'pps': pps_avg_all, 'F1 real': f1_real_avg_all, 'F1 syn': f1_syn_avg_all})
+            data_level_path = f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv'
+            if os.path.exists(data_level_path):
+                data_level_from_path = pd.read_csv(data_level_path, index=0)
+                data_level = pd.concat([data_level_from_path, data_level])
+            data_level.to_csv(data_level_path)
 
-            # save results
-            meth_level = pd.DataFrame(
-                {'ups': ups_all+[ups_avg], 'us': us_all+[us_avg], 'pps': pps_all+[pps_avg],
-                 'F1_real': f1_real_all+[f1_real_avg], 'F1_syn': f1_syn_all+[f1_syn_avg]},
-            )
-            meth_level.to_csv(f'eval/gen_data/{dataset_name}/{meth}/results_{meth}.csv')
-        data_level = pd.DataFrame({'method': method_l, 'ups': ups_avg_all, 'us': us_avg_all, 'pps': pps_avg_all, 'F1 real': f1_real_avg_all, 'F1 syn': f1_syn_avg_all})
-        data_level.to_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv')
-        data_level_all.append(data_level)
-        data_level_winner_ups = data_level['method'][data_level['ups']==data_level['ups'].max()]
-        data_level_winner_us = data_level['method'][data_level['us']==data_level['us'].max()]
-        data_level_winner_pps = data_level['method'][data_level['pps']==data_level['pps'].max()]
-        data_level_winner[dataset_name] = ('ups: '+str(data_level_winner_ups.to_list()), 'us: '+str(data_level_winner_us.to_list()), 'pps: '+str(data_level_winner_pps.to_list()))
-
-    if len(method_l) > 1 and len(dataset_l) > 1:
+    if args.summary:
+        for dataset_name in dataset_names.keys():
+            data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv')
+            data_level_winner_ups = data_level['method'][data_level['ups'] == data_level['ups'].max()]
+            data_level_winner_us = data_level['method'][data_level['us'] == data_level['us'].max()]
+            data_level_winner_pps = data_level['method'][data_level['pps'] == data_level['pps'].max()]
+            data_level_winner[dataset_name] = ('ups: ' + str(data_level_winner_ups.to_list()), 'us: ' + str(data_level_winner_us.to_list()),'pps: ' + str(data_level_winner_pps.to_list()))
+            data_level_all.append(data_level)
+        assert data_level_all.shape[0] % len(method_l) == 0
         summary = pd.concat(data_level_all).select_dtypes('number').groupby(level=0).mean()
         summary['method'] = data_level_all[0]['method']
         summary = summary[list(data_level_all[0].columns)]
@@ -464,6 +475,10 @@ if __name__ == "__main__":
                              help="Select model by name")  # NB, RF, DT, LG, (NN?)
     parser_eval.add_argument('--weights', type=tuple, required=False, default=(0.5, 0.5),
                              help="Choose weights to balance influence of us and pps -> (w_us, w_pps)")  # NB, RF, DT, LG, (NN?)
+    parser_eval.add_argument('--calc', type=bool, required=False, default=True,
+                            help="True if eval metric must be calculated.")
+    parser_eval.add_argument('--summary', type=bool, required=False, default=True,
+                            help="True if summary evaluation should be created")
 
     args = parser.parse_args()
 

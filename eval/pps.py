@@ -5,6 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from toolz import unique
 from tqdm import tqdm
 tqdm.pandas()
+import cupy as cp
 
 
 class PPS:
@@ -44,7 +45,7 @@ class PPS:
     def compute_similarity(self, r, dataset, cat_sim):
         # other solutions: one-hot-encoding for cat features; Hamming distance between cat features, and cosine between numerical;
         if len(cat_sim.shape) > 2:
-            print("sdufi")
+            print("incorrect cat_sim")
         r[self.cat_feat] = 1
         dataset[self.cat_feat] = cat_sim
         similarities = cosine_similarity(dataset.values, r.values.reshape(1, -1))[:,0]
@@ -60,7 +61,7 @@ class PPS:
     # Find unique match for training record
     def find_unique_match(self, t, matches):
         disclosure_risks_t = []
-        for _, train_matches, d in matches:
+        for _, train_matches, d in tqdm(matches):
             disclosure_risks_t.append(d) if (train_matches == t).all(axis=1).any() else disclosure_risks_t.append(0) # append 0 if t not in train_matches (so that index of risks aligns with index of matches; important for next step)
         i = disclosure_risks_t.index(max(disclosure_risks_t)) # index of highest disclosure risk
         unique_match = matches[i]
@@ -73,14 +74,16 @@ class PPS:
         self.preprocess_datasets()
 
         # Compute global similarity threshold for real data
-        cat_sim = (self.real_data_processed[self.cat_feat].values[:, np.newaxis] == self.real_data_processed[self.cat_feat].values[np.newaxis, :]).astype(int)  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
+        print("compute sim mat")
+        cat_sim = (cp.array(self.real_data_processed[self.cat_feat].values[:, np.newaxis]) == cp.array(self.real_data_processed[self.cat_feat].values[np.newaxis, :]).astype(int))  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
+        print("compute sim")
         global_similarities = self.real_data_processed.apply(
             lambda r: self.compute_similarity(r.copy(),self.real_data_processed.copy(),cat_sim[self.real_data_processed.index.get_loc(r.name)])[0][0], axis=1)
         global_threshold = np.mean(global_similarities)
 
         # Analyze each synthetic record
         #for _, s in tqdm(self.syn_data_processed.iterrows(),total=self.real_data_processed.shape[0], leave=True, desc="Over syn"):
-        for _, s in self.syn_data_processed.iterrows():
+        for _, s in tqdm(self.syn_data_processed.iterrows()):
 
             # Find real matches within the threshold
             real_matches = self.find_matches(s.copy(), self.real_data_processed.copy(), global_threshold)
@@ -110,14 +113,20 @@ class PPS:
             self.pps = 1
             return self.pps
 
+        print("loop over")
         # compute precision
+        print("pr")
         self.precision = np.mean(np.array(list(map(lambda x: x[2], self.matches)))) # average over all disclosure risks in matches
 
         # compute recall based on unique matches
+        print("um")
         unique_matches = self.train_data_processed.apply(lambda t: self.find_unique_match(t.copy(), self.matches.copy()), axis=1)
+        print("re")
         self.recall = np.sum(np.array(list(map(lambda x: x[2], unique_matches)))) / self.train_data.shape[0]
 
+        print("pps")
         # Step 5: Compute Privacy Protection Score (PPS)
         self.pps = 1 - (self.precision + self.recall) / 2
+        print("over")
         return self.pps
 
