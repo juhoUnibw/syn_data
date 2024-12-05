@@ -87,7 +87,7 @@ class PPS:
         self.preprocess_datasets()
 
         # Compute global similarity threshold for real data
-        cat_sim = (cp.array(self.real_data_processed[self.cat_feat].values[:, np.newaxis]) == cp.array(self.real_data_processed[self.cat_feat].values[np.newaxis, :]).astype(int))  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
+        cat_sim = (cp.array(self.real_data_processed[self.cat_feat].values[:, np.newaxis]) == cp.array(self.real_data_processed[self.cat_feat].values[np.newaxis, :])).astype(int)  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
         cat_sim = cp.asnumpy(cat_sim)
         cat_sim = cat_sim + 0.0000001 # necessary, because otherwise the magnitude in cosine calculation generates nan values (if vector=0)
         global_similarities = self.real_data_processed.apply(
@@ -104,7 +104,7 @@ class PPS:
                 continue
 
             # calculate local threshold for synthetic record (s)
-            cat_sim = (cp.array(real_matches[self.cat_feat].values[:, np.newaxis]) == cp.array(real_matches[self.cat_feat].values[np.newaxis, :]).astype(int))  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
+            cat_sim = (cp.array(real_matches[self.cat_feat].values[:, np.newaxis]) == cp.array(real_matches[self.cat_feat].values[np.newaxis, :])).astype(int)  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
             cat_sim = cp.asnumpy(cat_sim)
             local_similarities = real_matches.apply(
                 lambda r: self.compute_similarity(r.copy(), real_matches.copy(), cat_sim[real_matches.index.get_loc(r.name)])[0][0], axis=1)

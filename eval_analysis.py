@@ -3,6 +3,8 @@ from unittest.mock import inplace
 import pandas as pd
 import argparse
 import scipy.stats as stats
+import matplotlib.pyplot as plt
+import numpy as np
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
 from torch.utils.data.datapipes.dataframe.dataframe_wrapper import concat
 
@@ -21,11 +23,35 @@ dataset_names = \
         'lymphography': 'Lymphography/lymphography.csv',
         'patient': 'Postoperative Patient Data/post-operative.data.txt',
         'stroke': 'Stroke/healthcare-dataset-stroke-data.csv',
-        'thoracic_surgery': 'Thoracic Surgery/ThoraricSurgery.arff.txt',
-        'thyroid': 'Thyroid Disease/thyroid.csv',
-        'tumor': 'Tumor/primary-tumor.data.txt',
-        'sani': 'Z-Adlidazeh Sani/sani.xlsx',
-        'eye': 'EEG Eye State/EEG Eye State.arff.txt'}
+        'thoracic_surgery': 'Thoracic Surgery/ThoraricSurgery.arff.txt'}
+        #'thyroid': 'Thyroid Disease/thyroid.csv',
+        #'tumor': 'Tumor/primary-tumor.data.txt',
+        #'sani': 'Z-Adlidazeh Sani/sani.xlsx',
+        #'eye': 'EEG Eye State/EEG Eye State.arff.txt'}
+
+'''
+Dataset Name [source] # Records # Features # Num. # Cat. # Classes Missing Values >>> von TRAIN DATA EXTRAHIEREN
+'''
+data_sizes={
+'Diabetes': 768,
+'Heart': 297,
+'Breast Cancer': 286,
+'Dermatology': 366,
+'Sani': 303,
+'Breast Tissue': 106,
+'Kidney': 768,
+'Cardiotocography': 2126,
+'Retinography': 1152,
+'Echocardiogram': 132,
+'Eye': 14980,
+'Lymphography': 148,
+'Patient': 90,
+'Tumor': 339,
+'Stroke': 5110,
+'Thoracic Surgery': 470,
+'Thyroid': 9172,
+}
+
 
 # available methods
 methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan',  'smote',
@@ -96,6 +122,75 @@ def calc_std_diff(data, method):
 
     #std_meth_avg.to_csv(f'eval/std_results.csv')
 
+def corr_ups_us(data, method):
+    df_coll = []
+
+    if data != []:
+        dataset_l = data
+    else:
+        dataset_l = dataset_names.keys()
+
+
+    for dataset_name in dataset_l:
+
+        results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
+        df_coll.append(results_data_level[['us', 'pps']])
+
+    df = pd.concat(df_coll)
+    print(df)
+    print(stats.pearsonr(df['us'],df['pps']))
+
+    # std_meth_df = pd.DataFrame.from_dict(std_meth, orient='index')
+    # std_meth_avg = std_meth_df / len(dataset_l)
+    # std_meth_avg = std_meth_avg.round(decimals=2)
+    # std_meth_avg.to_csv(f'eval/std_results.csv')
+
+def corr_smpl_size(data, method):
+    df_coll = []
+    ups_values = {}
+    if data != []:
+        dataset_l = data
+    else:
+        dataset_l = dataset_names.keys()
+
+    if method != []:
+        method_l = method
+    else:
+        method_l = methods
+
+    for meth in method_l:
+        ups_values[meth] = []
+
+        for dataset_name in dataset_l:
+            results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
+            #df_coll.append(results_data_level['ups'])
+            ups_values[meth].append(float(results_data_level['ups'][results_data_level['method']==meth].values))
+
+    sample_sizes = list(range(1, 14))  # 17 verschiedene Sample Sizes
+    # Diagramm erstellen
+    plt.figure(figsize=(12, 8))
+
+
+
+    for meth in method_l:
+        plt.plot(sample_sizes, ups_values[meth], label=meth, marker='o')  # Jede Methode als Linie
+
+    # Diagramm-Details
+    #plt.title("Performance von Methoden bei verschiedenen Sample Sizes", fontsize=16)
+    plt.xlabel("Sample Size", fontsize=11)
+    plt.ylabel("UPS", fontsize=11)
+    #plt.legend(title="Methoden", fontsize=10, title_fontsize=12, loc='best')
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+
+    # Diagramm anzeigen
+    plt.show()
+    plt.savefig("corr_smpl_ex")
+    # std_meth_df = pd.DataFrame.from_dict(std_meth, orient='index')
+    # std_meth_avg = std_meth_df / len(dataset_l)
+    # std_meth_avg = std_meth_avg.round(decimals=2)
+    # std_meth_avg.to_csv(f'eval/std_results.csv')
+
 def anova(data, method):
     import pandas as pd
     import numpy as np
@@ -132,6 +227,7 @@ def anova(data, method):
     print(tukey)
 
 
+
 # start of command line call and loading of arguments
 if __name__ == "__main__":
 
@@ -139,8 +235,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # arguments for data generation
-    parser.add_argument('calc_std', type=bool, default=False, help='calculates the standard deviations for the performance of each synthesizers over all splits of each dataset => averages over all datasets are returned in csv')
-    parser.add_argument('calc_std_diff', type=bool, default=False, help='calculates the standard deviations for the performance of each synthesizers over all splits of each dataset => averages over all datasets are returned in csv')
+    parser.add_argument('corr_smpl_size', type=bool, default=False, help='calculates the standard deviations for the performance of each synthesizers over all splits of each dataset => averages over all datasets are returned in csv')
+    #parser.add_argument('corr', type=bool, default=False, help='calculates the standard deviations for the performance of each synthesizers over all splits of each dataset => averages over all datasets are returned in csv')
+    #parser.add_argument('calc_std', type=bool, default=False, help='calculates the standard deviations for the performance of each synthesizers over all splits of each dataset => averages over all datasets are returned in csv')
+    #parser.add_argument('calc_std_diff', type=bool, default=False, help='calculates the standard deviations for the performance of each synthesizers over all splits of each dataset => averages over all datasets are returned in csv')
     #parser.add_argument('anova', type=bool, default=False, help='calculates anova to judge statistical significance of avg ups differences between the methods over all datasets')
     parser.add_argument('--data', type=str, required=False, nargs='+', default=[],
                             help="Select dataset name, default iteratively takes all datasets")
@@ -150,9 +248,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.calc_std_diff:
-        calc_std_diff(args.data, args.method)
-    if args.calc_std:
-        calc_std(args.data, args.method)
+    if args.corr_smpl_size:
+        corr_smpl_size(args.data, args.method)
+    # if args.calc_std_diff:
+    #     calc_std_diff(args.data, args.method)
+    # if args.calc_std:
+    #     calc_std(args.data, args.method)
     #if args.anova:
      #   anova(args.data, args.method)

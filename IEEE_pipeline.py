@@ -415,9 +415,9 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
                 meth_level.to_csv(f'eval/gen_data/{dataset_name}/{meth}/results_{meth}.csv')
             data_level = pd.DataFrame({'method': method_l, 'ups': ups_avg_all, 'us': us_avg_all, 'pps': pps_avg_all, 'F1 real': f1_real_avg_all, 'F1 syn': f1_syn_avg_all})
             data_level_path = f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv'
-            if os.path.exists(data_level_path):
-                data_level_from_path = pd.read_csv(data_level_path, index=0)
-                data_level = pd.concat([data_level_from_path, data_level])
+            # if os.path.exists(data_level_path):
+            #     data_level_from_path = pd.read_csv(data_level_path, index_col=0)
+            #     data_level = pd.concat([data_level_from_path, data_level])# IN ORDER TO ADD NEW METHOD TO EXISTIN resulst
             data_level.to_csv(data_level_path)
 
     if summary:
@@ -438,6 +438,8 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
         for m, w in win_sum.items():
             summary_eval['# best'][summary_eval['method']==m] = w
         summary_eval.to_csv('eval/results_summary.csv')
+        summary_eval_std = pd.concat(data_level_all).select_dtypes('number').groupby(level=0).std()
+        summary_eval_std.to_csv('eval/results_summary_std.csv')
         with open('eval/data_winners.txt', 'w') as f:
             for k in data_level_winner.keys():
                 f.writelines(f"{k}\n{data_level_winner[k]}\n\n")
