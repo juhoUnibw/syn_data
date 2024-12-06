@@ -30,7 +30,7 @@ class PPS:
     # Preprocessing: Min-Max normalization for numerical features
     def preprocess(self, dataset):
         if len(self.num_feat) > 0:
-            scaler = MinMaxScaler()
+            scaler = MinMaxScaler(feature_range=(0, 1))
             dataset[self.num_feat] = scaler.fit_transform(dataset[self.num_feat])
         return dataset
 
@@ -49,12 +49,12 @@ class PPS:
             print("incorrect cat_sim")
         r[self.cat_feat] = 1
         dataset[self.cat_feat] = cat_sim
-        dot_product = np.dot(cp.array(dataset.values), cp.array(r.values))
-        magnitude_A = np.linalg.norm(cp.array(dataset.values), axis=1)
-        magnitude_B = np.linalg.norm(cp.array(r.values))
-        similarities = dot_product / (magnitude_A * magnitude_B)
-        similarities = cp.asnumpy(similarities)
-        #similarities = cosine_similarity(dataset.values, r.values.reshape(1, -1))[:,0]
+        #dot_product = np.dot(cp.array(dataset.values), cp.array(r.values))
+        #magnitude_A = np.linalg.norm(cp.array(dataset.values), axis=1)
+        #magnitude_B = np.linalg.norm(cp.array(r.values))
+        #similarities = dot_product / (magnitude_A * magnitude_B)
+        #similarities = cp.asnumpy(similarities)
+        similarities = cosine_similarity(dataset.values, r.values.reshape(1, -1))[:,0]
 
         return np.sort(similarities)[-2:], similarities # if r = syn_r => nn_similarity -> [-1] else -> [-2]
 
@@ -88,8 +88,8 @@ class PPS:
 
         # Compute global similarity threshold for real data
         cat_sim = (cp.array(self.real_data_processed[self.cat_feat].values[:, np.newaxis]) == cp.array(self.real_data_processed[self.cat_feat].values[np.newaxis, :])).astype(int)  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
+        #cat_sim[cat_sim == 0] = -1
         cat_sim = cp.asnumpy(cat_sim)
-        cat_sim = cat_sim + 0.0000001 # necessary, because otherwise the magnitude in cosine calculation generates nan values (if vector=0)
         global_similarities = self.real_data_processed.apply(
             lambda r: self.compute_similarity(r.copy(),self.real_data_processed.copy(),cat_sim[self.real_data_processed.index.get_loc(r.name)])[0][0], axis=1)
         global_threshold = np.mean(global_similarities)

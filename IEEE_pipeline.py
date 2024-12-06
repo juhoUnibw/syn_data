@@ -40,7 +40,7 @@ dataset_names = \
 
 # available methods
 methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan',  'smote',
-           'priv_bayes', 'cart'] #'great', 'tabula', 'ensgen', 'genary',
+           'priv_bayes', 'cart', 'great'] #'great', 'tabula', 'ensgen', 'genary',
 
 # Configuration and Dataset Prepraration
 
