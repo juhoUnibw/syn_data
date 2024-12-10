@@ -87,7 +87,7 @@ class PPS:
         self.preprocess_datasets()
 
         # Compute global similarity threshold for real data
-        cat_sim = (cp.array(self.real_data_processed[self.cat_feat].values[:, np.newaxis]) == cp.array(self.real_data_processed[self.cat_feat].values[np.newaxis, :])).astype(int)  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
+        cat_sim = (np.array(self.real_data_processed[self.cat_feat].values[:, np.newaxis]) == np.array(self.real_data_processed[self.cat_feat].values[np.newaxis, :])).astype(int)  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
         #cat_sim[cat_sim == 0] = -1
         cat_sim = cp.asnumpy(cat_sim)
         global_similarities = self.real_data_processed.apply(

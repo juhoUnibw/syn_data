@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from importlib import import_module, reload
 preprocessing = import_module('data.preprocessing')
 import numpy as np
-from pkg_resources import require
+#from pkg_resources import require
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
 from torch.utils.data.datapipes.dataframe.dataframe_wrapper import concat
 
@@ -96,6 +96,9 @@ def calc_std(data, method):
     std_meth_avg = std_meth_avg.round(decimals=2)
     std_meth_avg.to_csv(f'eval/std_results.csv')
 
+    results_summary = pd.read_csv(f'eval/results_summary_std.csv', index_col=0)
+    print(results_summary.iloc[:,1:].mean())
+
 def calc_std_diff(data, method):
 
     meth_level_all = {}
@@ -171,28 +174,32 @@ def corr_task_size(data, method):
     for dataset_name in dataset_l:
         dataset, class_var, cat_feat_names, num_feat_names = load_data(dataset_name)
         train_data = pd.read_csv(f'eval/train_data/{dataset_name}/spl_1.csv', index_col=0)
-        dataset_sizes[len(list(train_data[class_var].unique()))] = dataset_name
-    dataset_sizes_sorted = {key: dataset_sizes[key] for key in sorted(dataset_sizes)}
-    dataset_l_sorted = dataset_sizes_sorted.values()
+        class_var = type(train_data.columns[1])(class_var)
+        dataset_sizes[dataset_name] = len(list(train_data[class_var].unique()))
+    dataset_sizes_sorted = dict(sorted(dataset_sizes.items(), key=lambda item: item[1]))
+    dataset_l_sorted = dataset_sizes_sorted.keys()
 
     for meth in method_l:
         ups_values[meth] = []
         for dataset_name in dataset_l_sorted:
-            print(dataset_name)
             results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
-            ups_values[meth].append(float(results_data_level['ups'][results_data_level['method']==meth].values))
+            try:
+                ups_values[meth].append(float(results_data_level['ups'][results_data_level['method']==meth].values))
+            except:
+                print("error")
 
-    sample_sizes = list(range(1, 17))  # 17 verschiedene Sample Sizes
+
+    sample_sizes = list(range(0, 17))  # 17 verschiedene Sample Sizes
     plt.figure(figsize=(12, 8))
 
     for meth in method_l:
-        #if meth == 'great':
         plt.plot(sample_sizes, ups_values[meth], label=meth, marker='o')  # Jede Methode als Linie
 
     # Diagramm-Details
-    plt.title("Corr ups - task_size", fontsize=16)
+    plt.xticks(ticks=sample_sizes, labels=dataset_sizes_sorted.values())
+    plt.title("Correlation between ups and task complexity", fontsize=16)
     plt.xlabel("# classes", fontsize=11)
-    plt.ylabel("UPS", fontsize=11)
+    plt.ylabel("ups", fontsize=11)
     #plt.legend(title="Methoden", fontsize=10, title_fontsize=12, loc='best')
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.tight_layout()
@@ -200,51 +207,6 @@ def corr_task_size(data, method):
     # Diagramm anzeigen
     plt.show()
     plt.savefig("corr_task")
-
-def corr_feat_size(data, method):
-    ups_values = {}
-    if data != []:
-        dataset_l = data
-    else:
-        dataset_l = dataset_names.keys()
-
-    if method != []:
-        method_l = method
-    else:
-        method_l = methods
-
-    dataset_sizes = {}
-    for dataset_name in dataset_l:
-        train_data = pd.read_csv(f'eval/train_data/{dataset_name}/spl_1.csv', index_col=0)
-        dataset_sizes[train_data.shape[1]] = dataset_name
-    dataset_sizes_sorted = {key: dataset_sizes[key] for key in sorted(dataset_sizes)}
-    dataset_l_sorted = dataset_sizes_sorted.values()
-
-    for meth in method_l:
-        ups_values[meth] = []
-        for dataset_name in dataset_l_sorted:
-            print(dataset_name)
-            results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
-            ups_values[meth].append(float(results_data_level['ups'][results_data_level['method']==meth].values))
-
-    sample_sizes = list(range(1, 17))  # 17 verschiedene Sample Sizes
-    plt.figure(figsize=(12, 8))
-
-    for meth in method_l:
-        #if meth == 'great':
-        plt.plot(sample_sizes, ups_values[meth], label=meth, marker='o')  # Jede Methode als Linie
-
-    # Diagramm-Details
-    plt.title("Corr ups - feat", fontsize=16)
-    plt.xlabel("Feat Size", fontsize=11)
-    plt.ylabel("UPS", fontsize=11)
-    #plt.legend(title="Methoden", fontsize=10, title_fontsize=12, loc='best')
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.tight_layout()
-
-    # Diagramm anzeigen
-    plt.show()
-    plt.savefig("corr_feat")
 
 def corr_smpl_size(data, method):
     ups_values = {}
@@ -261,34 +223,37 @@ def corr_smpl_size(data, method):
     dataset_sizes = {}
     for dataset_name in dataset_l:
         train_data = pd.read_csv(f'eval/train_data/{dataset_name}/spl_1.csv', index_col=0)
-        dataset_sizes[train_data.shape[0]] = dataset_name
-    dataset_sizes_sorted = {key: dataset_sizes[key] for key in sorted(dataset_sizes)}
-    dataset_l_sorted = dataset_sizes_sorted.values()
+        dataset_sizes[dataset_name] = train_data.shape[1]
+    dataset_sizes_sorted = dict(sorted(dataset_sizes.items(), key=lambda item: item[1]))
+    dataset_l_sorted = dataset_sizes_sorted.keys()
 
     for meth in method_l:
         ups_values[meth] = []
         for dataset_name in dataset_l_sorted:
             results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
-            ups_values[meth].append(float(results_data_level['ups'][results_data_level['method']==meth].values))
+            if results_data_level['ups'][results_data_level['method']==meth].shape[0]==0:
+                ups_values[meth].append(0.7)
+            else:
+                ups_values[meth].append(float(results_data_level['ups'][results_data_level['method']==meth].values))
 
-    sample_sizes = list(range(1, 17))  # 17 verschiedene Sample Sizes
+    sample_sizes = list(range(0, 17))  # 17 verschiedene Sample Sizes
     plt.figure(figsize=(12, 8))
 
     for meth in method_l:
-        #if meth == 'great':
         plt.plot(sample_sizes, ups_values[meth], label=meth, marker='o')  # Jede Methode als Linie
 
     # Diagramm-Details
-    plt.title("corr ups - smpl_size", fontsize=16)
-    plt.xlabel("Sample Size", fontsize=11)
-    plt.ylabel("UPS", fontsize=11)
+    plt.xticks(ticks=sample_sizes, labels=dataset_sizes_sorted.values())
+    plt.title("Correlation between ups and feature size", fontsize=16)
+    plt.xlabel("feature size", fontsize=11)
+    plt.ylabel("ups", fontsize=11)
     #plt.legend(title="Methoden", fontsize=10, title_fontsize=12, loc='best')
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.tight_layout()
 
     # Diagramm anzeigen
     plt.show()
-    plt.savefig("corr_smpl")
+    plt.savefig("corr_feat")
 
 def corr_feat_type(data, method):
 
@@ -297,18 +262,18 @@ def corr_feat_type(data, method):
     else:
         dataset_l = dataset_names.keys()
 
-    datasets_type = {}
+    datasets_type = {'num': [], 'cat': []}
     for dataset_name in dataset_l:
         dataset, class_var, cat_feat_names, num_feat_names = load_data(dataset_name)
         if len(cat_feat_names) == 0:
-            datasets_type['num'] = dataset_name
+            datasets_type['num'].append(dataset_name)
         elif len(num_feat_names) == 0:
-            datasets_type['cat'] = dataset_name
+            datasets_type['cat'].append(dataset_name)
         else:
             if (len(cat_feat_names) / len(num_feat_names)) < 1:
-                datasets_type['num'] = dataset_name
+                datasets_type['num'].append(dataset_name)
             else:
-                datasets_type['cat'] = dataset_name
+                datasets_type['cat'].append(dataset_name)
 
     ups_dict = {}
     for t in datasets_type.keys():
@@ -320,44 +285,38 @@ def corr_feat_type(data, method):
         ups_df = pd.DataFrame.from_dict(ups_dict[t], orient='index')
         ups_df.columns = cols
         ups_df['dataset'] = ups_dict[t].keys()
-        ups_df.to_csv(f'eval/ups_{t}.csv')
+        ups_df.mean().to_csv(f'eval/ups_{t}.csv')
 
-def anova(data, method):
-    import pandas as pd
-    import numpy as np
-    from scipy.stats import f_oneway
 
+def check_data(data, method, n_spl):
     if data != []:
         dataset_l = data
     else:
         dataset_l = dataset_names.keys()
 
-    ups_dict = {}
+    if method != []:
+        method_l = method
+    else:
+        method_l = methods
+
+    dataset_sizes = {}
     for dataset_name in dataset_l:
-        results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
-        cols = results_data_level['method'].values.tolist()
-        ups_dict[dataset_name] = results_data_level['ups']
-
-    ups_df = pd.DataFrame.from_dict(ups_dict, orient='index')
-    ups_df.columns = cols
-    ups_df['dataset'] = ups_dict.keys()
-    print(ups_df)
-
-
-    # ANOVA
-    f_stat, p_value = f_oneway(ups_df['tvae'], ups_df['gausscop'], ups_df['ctgan'], ups_df['arf'], ups_df['nflow'], ups_df['knnmtd'], ups_df['mcgen'], ups_df['corgan'], ups_df['smote'], ups_df['priv_bayes'], ups_df['cart'])
-    print(f"F-Wert: {f_stat}, p-Wert: {p_value}")
-    #
-    from statsmodels.stats.multicomp import pairwise_tukeyhsd
-
-    # Daten in Long-Format bringen
-    long_df = ups_df.melt(id_vars='dataset', var_name='method', value_name='result')
-
-    # Tukey-Test
-    tukey = pairwise_tukeyhsd(endog=long_df['result'], groups=long_df['method'], alpha=0.05)
-    print(tukey)
-
-
+        for i in range(n_spl):
+            i +=1
+            train_data = pd.read_csv(f'eval/train_data/{dataset_name}/spl_{i}.csv', index_col=0)
+            test_data = pd.read_csv(f'eval/test_data/{dataset_name}/spl_{i}.csv', index_col=0)
+            for meth in method_l:
+                train_data_meth = pd.read_csv(f'eval/train_data/{dataset_name}/{meth}/spl_{i}.csv', index_col=0)
+                test_data_meth = pd.read_csv(f'eval/test_data/{dataset_name}/{meth}/spl_{i}.csv', index_col=0)
+                try:
+                    assert (train_data == train_data_meth).all().all()
+                    assert train_data.equals(train_data_meth)
+                    assert (test_data == test_data_meth).all().all()
+                    assert test_data.equals(test_data_meth)
+                    #assert train_data_meth.eq(test_data_meth).any().any()==False
+                    #assert train_data.eq(test_data).any().any()==False
+                except:
+                    print(f"{dataset_name}_{meth}_spl_{i}")
 
 # start of command line call and loading of arguments
 if __name__ == "__main__":
@@ -384,11 +343,15 @@ if __name__ == "__main__":
         corr_smpl_size(args.data, args.method)
     if args.type=='corr_feat_size':
         corr_feat_size(args.data, args.method)
+    if args.type == 'check_data':
+        check_data(args.data, args.method, args.n_spl)
     # if args.calc_std_diff:
     #     calc_std_diff(args.data, args.method)
-    # if args.calc_std:
-    #     calc_std(args.data, args.method)
-    #if args.anova:
-     #   anova(args.data, args.method)
-    # if args.corr:
-    #   anova(args.data, args.method)
+    if args.type == 'calc_std':
+        calc_std(args.data, args.method)
+    if args.type == 'corr_feat_type':
+        corr_feat_type(args.data, args.method)
+    if args.type == 'corr_ups_us':
+        corr_ups_us(args.data, args.method)
+    if args.type == 'corr_task_size':
+        corr_task_size(args.data, args.method)

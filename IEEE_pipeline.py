@@ -439,6 +439,8 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
             summary_eval['# best'][summary_eval['method']==m] = w
         summary_eval.to_csv('eval/results_summary.csv')
         summary_eval_std = pd.concat(data_level_all).select_dtypes('number').groupby(level=0).std()
+        summary_eval_std['method'] = data_level_all[0]['method']
+        summary_eval_std = summary_eval_std[list(data_level_all[0].columns)]
         summary_eval_std.to_csv('eval/results_summary_std.csv')
         with open('eval/data_winners.txt', 'w') as f:
             for k in data_level_winner.keys():
