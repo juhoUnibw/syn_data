@@ -170,90 +170,81 @@ def corr_task_size(data, method):
     else:
         method_l = methods
 
-    dataset_sizes = {}
+    dataset_sizes = {'=2': [], '>2': []}
     for dataset_name in dataset_l:
         dataset, class_var, cat_feat_names, num_feat_names = load_data(dataset_name)
         train_data = pd.read_csv(f'eval/train_data/{dataset_name}/spl_1.csv', index_col=0)
         class_var = type(train_data.columns[1])(class_var)
-        dataset_sizes[dataset_name] = len(list(train_data[class_var].unique()))
-    dataset_sizes_sorted = dict(sorted(dataset_sizes.items(), key=lambda item: item[1]))
-    dataset_l_sorted = dataset_sizes_sorted.keys()
+        #dataset_sizes[dataset_name] = len(list(train_data[class_var].unique()))
+        num_cl = len(list(train_data[class_var].unique()))
+        if num_cl == 2:
+            dataset_sizes['=2'].append(dataset_name)
+        else:
+            dataset_sizes['>2'].append(dataset_name)
+    #dataset_sizes_sorted = dict(sorted(dataset_sizes.items(), key=lambda item: item[1]))
+    #dataset_l_sorted = dataset_sizes_sorted.keys()
 
-    for meth in method_l:
-        ups_values[meth] = []
-        for dataset_name in dataset_l_sorted:
+    for size in dataset_sizes.keys():
+        ups_values[size] = 0
+        for dataset_name in dataset_sizes[size]:
             results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
-            try:
-                ups_values[meth].append(float(results_data_level['ups'][results_data_level['method']==meth].values))
-            except:
-                print("error")
+            ups_values[size] += results_data_level.iloc[:, 1:]
+        ups_values[size] /= len(dataset_sizes[size])
+        ups_values[size]['method'] = results_data_level['method']
+        ups_values[size] = ups_values[size][results_data_level.columns]
+        ups_values[size].to_csv(f'eval/results/corr_task_{size}.csv')
 
 
-    sample_sizes = list(range(0, 17))  # 17 verschiedene Sample Sizes
-    plt.figure(figsize=(12, 8))
-
-    for meth in method_l:
-        plt.plot(sample_sizes, ups_values[meth], label=meth, marker='o')  # Jede Methode als Linie
-
-    # Diagramm-Details
-    plt.xticks(ticks=sample_sizes, labels=dataset_sizes_sorted.values())
-    plt.title("Correlation between ups and task complexity", fontsize=16)
-    plt.xlabel("# classes", fontsize=11)
-    plt.ylabel("ups", fontsize=11)
-    #plt.legend(title="Methoden", fontsize=10, title_fontsize=12, loc='best')
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.tight_layout()
-
-    # Diagramm anzeigen
-    plt.show()
-    plt.savefig("corr_task")
-
-def corr_smpl_size(data, method):
-    ups_values = {}
+def corr_size(data, mode='smpl'):
+    ups_values = {'small': 0, 'large': 0}
     if data != []:
         dataset_l = data
     else:
         dataset_l = dataset_names.keys()
 
-    if method != []:
-        method_l = method
-    else:
-        method_l = methods
-
     dataset_sizes = {}
     for dataset_name in dataset_l:
         train_data = pd.read_csv(f'eval/train_data/{dataset_name}/spl_1.csv', index_col=0)
-        dataset_sizes[dataset_name] = train_data.shape[1]
+        dataset_sizes[dataset_name] = train_data.shape[int(mode=='feat')]
     dataset_sizes_sorted = dict(sorted(dataset_sizes.items(), key=lambda item: item[1]))
     dataset_l_sorted = dataset_sizes_sorted.keys()
 
-    for meth in method_l:
-        ups_values[meth] = []
-        for dataset_name in dataset_l_sorted:
-            results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
-            if results_data_level['ups'][results_data_level['method']==meth].shape[0]==0:
-                ups_values[meth].append(0.7)
-            else:
-                ups_values[meth].append(float(results_data_level['ups'][results_data_level['method']==meth].values))
+    c = {'small': 0, 'large': 0}
+    z = 0
+    for dataset_name in dataset_l_sorted:
+        if z < 9:
+            k = 'small'
+            c[k] += 1
+        else:
+            k = 'large'
+            c[k] += 1
+        results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
+        ups_values[k] += results_data_level.iloc[:, 1:]
+        z += 1
+    for k in c.keys():
+        ups_values[k] /= c[k]
+        ups_values[k]['method'] = results_data_level['method']
+        ups_values[k] = ups_values[k][results_data_level.columns]
+        ups_values[k].to_csv(f'eval/results/corr_{mode}_{k}.csv')
 
-    sample_sizes = list(range(0, 17))  # 17 verschiedene Sample Sizes
-    plt.figure(figsize=(12, 8))
+    # sample_sizes = list(range(0, 17))  # 17 verschiedene Sample Sizes
+    # plt.figure(figsize=(12, 8))
+    #
+    # for meth in method_l:
+    #     plt.plot(sample_sizes, ups_values[meth], label=meth, marker='o')  # Jede Methode als Linie
 
-    for meth in method_l:
-        plt.plot(sample_sizes, ups_values[meth], label=meth, marker='o')  # Jede Methode als Linie
-
-    # Diagramm-Details
-    plt.xticks(ticks=sample_sizes, labels=dataset_sizes_sorted.values())
-    plt.title("Correlation between ups and feature size", fontsize=16)
-    plt.xlabel("feature size", fontsize=11)
-    plt.ylabel("ups", fontsize=11)
-    #plt.legend(title="Methoden", fontsize=10, title_fontsize=12, loc='best')
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.tight_layout()
-
-    # Diagramm anzeigen
-    plt.show()
-    plt.savefig("corr_feat")
+    # # Diagramm-Details
+    # plt.xticks(ticks=sample_sizes, labels=dataset_sizes_sorted.values())
+    # plt.title("Correlation between ups and feature size", fontsize=16)
+    # plt.xlabel("feature size", fontsize=11)
+    # plt.ylabel("ups", fontsize=11)
+    # #plt.legend(title="Methoden", fontsize=10, title_fontsize=12, loc='best')
+    # plt.grid(True, linestyle='--', alpha=0.6)
+    # plt.tight_layout()
+    #
+    # # Diagramm anzeigen
+    # plt.show()
+    # plt.savefig("corr_feat")
 
 def corr_feat_type(data, method):
 
@@ -276,17 +267,18 @@ def corr_feat_type(data, method):
                 datasets_type['cat'].append(dataset_name)
 
     ups_dict = {}
+    summ_df = pd.DataFrame()
     for t in datasets_type.keys():
-        ups_dict[t] = {}
+        ups_dict[t] = 0
         for dataset_name in datasets_type[t]:
             results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
             cols = results_data_level['method'].values.tolist()
-            ups_dict[t][dataset_name] = results_data_level['ups']
-        ups_df = pd.DataFrame.from_dict(ups_dict[t], orient='index')
-        ups_df.columns = cols
-        ups_df['dataset'] = ups_dict[t].keys()
-        ups_df.mean().to_csv(f'eval/ups_{t}.csv')
-
+            ups_dict[t] += results_data_level.iloc[:, 1:]
+        #ups_df = pd.DataFrame.from_dict(ups_dict[t], orient='index')
+        ups_dict[t] /= len(datasets_type[t])
+        ups_dict[t]['method'] = cols
+        ups_dict[t] = ups_dict[t][results_data_level.columns]
+        ups_dict[t].to_csv(f'eval/results/corr_{t}.csv')
 
 def check_data(data, method, n_spl):
     if data != []:
@@ -318,6 +310,72 @@ def check_data(data, method, n_spl):
                 except:
                     print(f"{dataset_name}_{meth}_spl_{i}")
 
+def summary():
+    corr_smpl_small = pd.read_csv(f'eval/results/corr_smpl_small.csv', index_col=0)
+    corr_smpl_large = pd.read_csv(f'eval/results/corr_smpl_large.csv', index_col=0)
+    corr_feat_small = pd.read_csv(f'eval/results/corr_feat_small.csv', index_col=0)
+    corr_feat_large = pd.read_csv(f'eval/results/corr_feat_large.csv', index_col=0)
+    corr_num = pd.read_csv(f'eval/results/corr_num.csv', index_col=0)
+    corr_cat = pd.read_csv(f'eval/results/corr_cat.csv', index_col=0)
+    corr_task_small = pd.read_csv(f'eval/results/corr_task_=2.csv', index_col=0)
+    corr_task_large = pd.read_csv(f'eval/results/corr_task_>2.csv', index_col=0)
+    for metric in ['ups', 'us', 'pps']:
+        summ_df = pd.DataFrame()
+        summ_df['method'] = corr_smpl_small['method']
+        summ_df['smpl<'] = corr_smpl_small[metric]
+        summ_df['smpl>'] = corr_smpl_large[metric]
+        summ_df['feat<'] = corr_feat_small[metric]
+        summ_df['feat>'] = corr_feat_large[metric]
+        summ_df['num'] = corr_num[metric]
+        summ_df['cat'] = corr_cat[metric]
+        summ_df['class<'] = corr_task_small[metric]
+        summ_df['class>'] = corr_task_large[metric]
+        summ_df_avg = summ_df.iloc[:,1:].mean()
+        summ_df_avg.T['method'] = 'avg'
+        summ_df_avg = summ_df_avg[summ_df.columns]
+        summ_df = pd.concat([summ_df, summ_df_avg.to_frame().T])
+        summ_df.to_csv(f'eval/results/corr_summary_{metric}.csv')
+        if metric == 'ups':
+            df = summ_df.iloc[:-1, :].copy()
+
+    # bar graph of differences in each data characteristic
+
+    summ_df_diff = pd.DataFrame({'smpl_diff': abs(df["smpl<"] - df["smpl>"]),
+                                 'feat_diff': abs(df["feat<"] - df["feat>"]),
+                                 'num_cat_diff': abs(df["num"] - df["cat"]),
+                                 'class_diff': abs(df["class<"] - df["class>"])
+                                 })
+
+    if summ_df_diff.iloc[-1, :].isna().any():
+        summ_df_diff.iloc[-1, :] = 0.1 # NEEDS TO BE REMOVED ONCE EXPERIMENTS ARE DONE
+    methods = df["method"]
+    syn_rob = (1-summ_df_diff.mean(axis=1)) * 100
+    #bar_values = syn_rob[["smpl_diff", "feat_diff", "num_cat_diff", "class_diff"]]
+    bar_values = syn_rob.copy()
+    fig, ax = plt.subplots(figsize=(7, 3))
+    x = np.arange(len(methods))
+    bar_width = 0.9
+    #colors = ["blue", "orange", "green", "red"]
+    #labels = ["smpl<>", "feat<>", "num_cat", "class<>"]
+
+    #for i, col in enumerate(bar_values.columns):
+        #ax.bar(x + i * bar_width, bar_values[col], width=bar_width, color=colors[i], label=labels[i])
+    ax.bar(x + 1.5*bar_width, bar_values, width=bar_width, color='black')
+
+    ax.set_xlabel("synthesizers")
+    ax.set_ylabel("robustness in %")
+    #ax.set_title("Robustness of synthesizers against different data characteristics")
+    ax.set_xticks(x + bar_width * 1.5)
+    ax.set_xticklabels(methods, rotation=45)
+    ax.legend()
+
+    plt.tight_layout()
+    plt.rcParams.update({'font.size': 11})
+    plt.ylim(88, 100)
+    plt.savefig("eval/results/syn_robustness.png", dpi=200)
+    plt.show()
+
+
 # start of command line call and loading of arguments
 if __name__ == "__main__":
 
@@ -340,9 +398,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.type=='corr_smpl_size':
-        corr_smpl_size(args.data, args.method)
+        corr_size(args.data, 'smpl')
     if args.type=='corr_feat_size':
-        corr_feat_size(args.data, args.method)
+        corr_size(args.data, 'feat')
     if args.type == 'check_data':
         check_data(args.data, args.method, args.n_spl)
     # if args.calc_std_diff:
@@ -355,3 +413,5 @@ if __name__ == "__main__":
         corr_ups_us(args.data, args.method)
     if args.type == 'corr_task_size':
         corr_task_size(args.data, args.method)
+    if args.type == 'summary':
+        summary()

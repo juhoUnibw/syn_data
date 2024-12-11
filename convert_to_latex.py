@@ -37,12 +37,13 @@ if __name__ == "__main__":
 
     # read as dataframe and convert to latex code
     df = pd.read_csv(args.data_path, index_col=0)
-    df.drop(columns='F1 real', inplace=True)
-    df.sort_values(by='ups', ascending=False, inplace=True)
     try:
+        df.drop(columns='F1 real', inplace=True)
+        print("no column F1 real")
+        df.sort_values(by='ups', ascending=False, inplace=True)
         df['# best'] = df['# best'].astype(str)
     except:
-        print('no column # best')
+        print('sub results')
     print(df)
     latex_table = dataframe_to_latex(df)
     print(latex_table)
