@@ -154,7 +154,8 @@ def corr_us_pps(data, method):
     print(df)
     print(stats.pearsonr(df['us'],df['pps']))
 
-    seaborn.regplot(x='us', y='pps', data=df)
+    #plt.figure(figsize=(14, 10))
+    seaborn.regplot(x='us', y='pps', data=df, order=2)
     plt.title('utility-privacy trade-off trend line')
     plt.savefig('eval/results/us-pps-corr.png', dpi=200)
     plt.show()
