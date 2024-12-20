@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from importlib import import_module, reload
 preprocessing = import_module('data.preprocessing')
 import numpy as np
+import seaborn
 #from pkg_resources import require
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
 from torch.utils.data.datapipes.dataframe.dataframe_wrapper import concat
@@ -94,10 +95,11 @@ def calc_std(data, method):
     std_meth_df = pd.DataFrame.from_dict(std_meth, orient='index')
     std_meth_avg = std_meth_df / len(dataset_l)
     std_meth_avg = std_meth_avg.round(decimals=2)
-    std_meth_avg.to_csv(f'eval/std_results.csv')
+    std_meth_avg.to_csv(f'eval/std_results_spl.csv')
 
     results_summary = pd.read_csv(f'eval/results_summary_std.csv', index_col=0)
-    print(results_summary.iloc[:,1:].mean())
+    print("AVG Std across all splits", std_meth_avg.mean())
+    print("AVG Std across all datasets", results_summary.iloc[:,1:].mean())
 
 def calc_std_diff(data, method):
 
@@ -134,7 +136,7 @@ def calc_std_diff(data, method):
 
     #std_meth_avg.to_csv(f'eval/std_results.csv')
 
-def corr_ups_us(data, method):
+def corr_us_pps(data, method):
     df_coll = []
 
     if data != []:
@@ -152,10 +154,11 @@ def corr_ups_us(data, method):
     print(df)
     print(stats.pearsonr(df['us'],df['pps']))
 
-    # std_meth_df = pd.DataFrame.from_dict(std_meth, orient='index')
-    # std_meth_avg = std_meth_df / len(dataset_l)
-    # std_meth_avg = std_meth_avg.round(decimals=2)
-    # std_meth_avg.to_csv(f'eval/std_results.csv')
+    seaborn.regplot(x='us', y='pps', data=df)
+    plt.title('utility-privacy trade-off trend line')
+    plt.savefig('eval/results/us-pps-corr.png', dpi=200)
+    plt.show()
+
 
 def corr_task_size(data, method):
 
@@ -339,21 +342,18 @@ def summary():
             df = summ_df.iloc[:-1, :].copy()
 
     # bar graph of differences in each data characteristic
-
     summ_df_diff = pd.DataFrame({'smpl_diff': abs(df["smpl<"] - df["smpl>"]),
                                  'feat_diff': abs(df["feat<"] - df["feat>"]),
                                  'num_cat_diff': abs(df["num"] - df["cat"]),
                                  'class_diff': abs(df["class<"] - df["class>"])
                                  })
 
-    if summ_df_diff.iloc[-1, :].isna().any():
-        summ_df_diff.iloc[-1, :] = 0.1 # NEEDS TO BE REMOVED ONCE EXPERIMENTS ARE DONE
-    methods = df["method"]
     syn_rob = (1-summ_df_diff.mean(axis=1)) * 100
-    #bar_values = syn_rob[["smpl_diff", "feat_diff", "num_cat_diff", "class_diff"]]
-    bar_values = syn_rob.copy()
+    syn_rob_df = pd.DataFrame({'synthesizer': df['method'], 'robustness': syn_rob})
+    syn_rob_df.sort_values(by='robustness', ascending=False, inplace=True)
+    bar_values = syn_rob_df['robustness']
     fig, ax = plt.subplots(figsize=(7, 3))
-    x = np.arange(len(methods))
+    x = np.arange(syn_rob_df.shape[0])
     bar_width = 0.9
     #colors = ["blue", "orange", "green", "red"]
     #labels = ["smpl<>", "feat<>", "num_cat", "class<>"]
@@ -366,7 +366,7 @@ def summary():
     ax.set_ylabel("robustness in %")
     #ax.set_title("Robustness of synthesizers against different data characteristics")
     ax.set_xticks(x + bar_width * 1.5)
-    ax.set_xticklabels(methods, rotation=45)
+    ax.set_xticklabels(syn_rob_df['synthesizer'], rotation=45)
     ax.legend()
 
     plt.tight_layout()
@@ -403,14 +403,12 @@ if __name__ == "__main__":
         corr_size(args.data, 'feat')
     if args.type == 'check_data':
         check_data(args.data, args.method, args.n_spl)
-    # if args.calc_std_diff:
-    #     calc_std_diff(args.data, args.method)
     if args.type == 'calc_std':
         calc_std(args.data, args.method)
     if args.type == 'corr_feat_type':
         corr_feat_type(args.data, args.method)
-    if args.type == 'corr_ups_us':
-        corr_ups_us(args.data, args.method)
+    if args.type == 'corr_us_pps':
+        corr_us_pps(args.data, args.method)
     if args.type == 'corr_task_size':
         corr_task_size(args.data, args.method)
     if args.type == 'summary':
