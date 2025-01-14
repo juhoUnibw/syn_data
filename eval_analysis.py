@@ -59,7 +59,7 @@ data_sizes={
 
 # available methods
 methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan',  'smote',
-           'priv_bayes', 'cart'] #'great', 'tabula', 'ensgen', 'genary',
+           'priv_bayes', 'cart', 'great']# 'tabula', 'ensgen', 'genary',
 
 
 def load_data(dataset_name):
@@ -67,6 +67,44 @@ def load_data(dataset_name):
     dataset, class_var, cat_feat_names, num_feat_names = preprocessing.load_data(dataset_name)
 
     return dataset, class_var, cat_feat_names, num_feat_names
+
+# data synthesis process
+def detailed_results(data, method):
+
+    if data != []:
+        dataset_l = data
+    else:
+        dataset_l = dataset_names.keys()
+
+    if method != []:
+        method_l = method
+    else:
+        method_l = methods
+
+    ups_data_level = []
+    us_data_level = []
+    pps_data_level = []
+
+    for dataset_name in dataset_l:
+
+        results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
+        ups_data_level.append(results_data_level['ups'].values)
+        us_data_level.append(results_data_level['us'].values)
+        pps_data_level.append(results_data_level['pps'].values)
+
+    for metric in ['ups', 'us', 'pps']:
+        if metric == 'ups':
+            vals = ups_data_level
+        if metric == 'us':
+            vals = us_data_level
+        if metric == 'pps':
+            vals = pps_data_level
+
+        df = pd.DataFrame(vals, columns=method_l)
+        df['Datasets'] = dataset_l
+        df = df[['Datasets']+list(df.columns)[:-1]]
+        df.to_csv(f'eval/results/detailed_results_{metric}.csv')
+
 
 # data synthesis process
 def calc_std(data, method):
@@ -156,7 +194,7 @@ def corr_us_pps(data, method):
 
     #plt.figure(figsize=(14, 10))
     seaborn.regplot(x='us', y='pps', data=df, order=2)
-    plt.title('utility-privacy trade-off trend line')
+    plt.title('utility-privacy trade-off trend curve')
     plt.savefig('eval/results/us-pps-corr.png', dpi=200)
     plt.show()
 
@@ -412,5 +450,7 @@ if __name__ == "__main__":
         corr_us_pps(args.data, args.method)
     if args.type == 'corr_task_size':
         corr_task_size(args.data, args.method)
+    if args.type == 'details':
+        detailed_results(args.data, args.method)
     if args.type == 'summary':
         summary()
