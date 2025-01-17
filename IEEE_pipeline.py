@@ -2,15 +2,14 @@ import pandas as pd
 import random
 from importlib import reload, import_module
 import warnings
-from traitlets import Union
 warnings.filterwarnings('ignore')
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import f1_score, classification_report
-import os, glob
+from sklearn.metrics import f1_score
+import os
 from tqdm import tqdm
 import argparse
 preprocessing = import_module('data.preprocessing') # preprocessing module
@@ -40,10 +39,9 @@ dataset_names = \
 
 # available methods
 methods = ['tvae', 'gausscop', 'ctgan', 'arf', 'nflow', 'knnmtd', 'mcgen', 'corgan',  'smote',
-           'priv_bayes', 'cart', 'great'] #'great', 'tabula', 'ensgen', 'genary',
+           'priv_bayes', 'cart', 'great']
 
 # Configuration and Dataset Prepraration
-
 def load_data(dataset_name):
     reload(preprocessing)
     dataset, class_var, cat_feat_names, num_feat_names = preprocessing.load_data(dataset_name)
@@ -53,9 +51,9 @@ def load_data(dataset_name):
 def prepData(dataset, class_var):
 
     data = dataset.copy()
-    dataset_feat = data.drop(labels=class_var, axis=1)
-    features = list(dataset_feat.columns)
 
+    #dataset_feat = data.drop(labels=class_var, axis=1)
+    #features = list(dataset_feat.columns)
     # encode string values
     # category_mapping = dict(enumerate(data[feat].astype('category').cat.categories)) to save the mappings > could be reassigned after synthesis
     # data[feat] = data[feat].astype('category').cat.codes

@@ -1,5 +1,3 @@
-from unittest.mock import inplace
-
 import pandas as pd
 import argparse
 import scipy.stats as stats
@@ -8,9 +6,6 @@ from importlib import import_module, reload
 preprocessing = import_module('data.preprocessing')
 import numpy as np
 import seaborn
-#from pkg_resources import require
-from statsmodels.stats.multicomp import pairwise_tukeyhsd
-from torch.utils.data.datapipes.dataframe.dataframe_wrapper import concat
 
 # available datasets and paths
 dataset_names = \
@@ -32,29 +27,6 @@ dataset_names = \
         'tumor': 'Tumor/primary-tumor.data.txt',
         'sani': 'Z-Adlidazeh Sani/sani.xlsx',
         'eye': 'EEG Eye State/EEG Eye State.arff.txt'}
-
-'''
-Dataset Name [source] # Records # Features # Num. # Cat. # Classes Missing Values
-'''
-data_sizes={
-'Diabetes': 768,
-'Heart': 297,
-'Breast Cancer': 286,
-'Dermatology': 366,
-'Sani': 303,
-'Breast Tissue': 106,
-'Kidney': 768,
-'Cardiotocography': 2126,
-'Retinography': 1152,
-'Echocardiogram': 132,
-'Eye': 14980,
-'Lymphography': 148,
-'Patient': 90,
-'Tumor': 339,
-'Stroke': 5110,
-'Thoracic Surgery': 470,
-'Thyroid': 9172,
-}
 
 
 # available methods
@@ -170,7 +142,7 @@ def calc_std_diff(data, method):
             diff_2 = (meth_level_all[meth_a]['ups'].loc[1] - meth_level_all[meth_b]['ups'].loc[1])
             t_stat, p_value = stats.ttest_ind(diff_1.abs(), diff_2.abs())
             t_stat, p_value = stats.ttest_ind(diff_1.abs(), diff_2.abs())
-            print(f"\nMethod pair {meth_a} - {meth_b}\n", t_stat, p_value) # zwischen allen Datenpaaren durchschnitt des p values berechnen? Dann mit FRG besrpechen
+            print(f"\nMethod pair {meth_a} - {meth_b}\n", t_stat, p_value)
 
     #std_meth_avg.to_csv(f'eval/std_results.csv')
 
@@ -207,11 +179,6 @@ def corr_task_size(data, method):
     else:
         dataset_l = dataset_names.keys()
 
-    if method != []:
-        method_l = method
-    else:
-        method_l = methods
-
     dataset_sizes = {'=2': [], '>2': []}
     for dataset_name in dataset_l:
         dataset, class_var, cat_feat_names, num_feat_names = load_data(dataset_name)
@@ -223,8 +190,6 @@ def corr_task_size(data, method):
             dataset_sizes['=2'].append(dataset_name)
         else:
             dataset_sizes['>2'].append(dataset_name)
-    #dataset_sizes_sorted = dict(sorted(dataset_sizes.items(), key=lambda item: item[1]))
-    #dataset_l_sorted = dataset_sizes_sorted.keys()
 
     for size in dataset_sizes.keys():
         ups_values[size] = 0
@@ -267,26 +232,7 @@ def corr_size(data, mode='smpl'):
         ups_values[k] /= c[k]
         ups_values[k]['method'] = results_data_level['method']
         ups_values[k] = ups_values[k][results_data_level.columns]
-        ups_values[k].to_csv(f'eval/results/corr_{mode}_{k}.csv')
-
-    # sample_sizes = list(range(0, 17))  # 17 verschiedene Sample Sizes
-    # plt.figure(figsize=(12, 8))
-    #
-    # for meth in method_l:
-    #     plt.plot(sample_sizes, ups_values[meth], label=meth, marker='o')  # Jede Methode als Linie
-
-    # # Diagramm-Details
-    # plt.xticks(ticks=sample_sizes, labels=dataset_sizes_sorted.values())
-    # plt.title("Correlation between ups and feature size", fontsize=16)
-    # plt.xlabel("feature size", fontsize=11)
-    # plt.ylabel("ups", fontsize=11)
-    # #plt.legend(title="Methoden", fontsize=10, title_fontsize=12, loc='best')
-    # plt.grid(True, linestyle='--', alpha=0.6)
-    # plt.tight_layout()
-    #
-    # # Diagramm anzeigen
-    # plt.show()
-    # plt.savefig("corr_feat")
+        ups_values[k].to_csv(f'eval/results/corr_{mode}_{k}.csv'
 
 def corr_feat_type(data, method):
 
