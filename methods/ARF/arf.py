@@ -2,11 +2,8 @@ import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
 import subprocess
-import os
-
 
 # create synthetic data with ARF
-
 def gen(trainSet, feat, smpl_frac, class_var):
 
     smpl_size = round(trainSet.shape[0] * smpl_frac) # sample size of synthetic data
@@ -21,7 +18,7 @@ def gen(trainSet, feat, smpl_frac, class_var):
     cmd = ['Rscript', 'methods/ARF/arf_model.r', str(smpl_size)]
     subprocess.run(cmd, capture_output=True, text=True)
 
-    # read generated data and readd feature names to dataframe (get lost in synthesis process)
+    # read generated data and re-add feature names to dataframe (get lost in synthesis process)
     gen_data = pd.read_csv('methods/ARF/gen_data.csv')
     cols = feat
     cols.append(class_var)

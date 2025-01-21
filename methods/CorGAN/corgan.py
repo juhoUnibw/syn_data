@@ -3,16 +3,13 @@ import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
 import subprocess
-import re
 
 # #### Adaption ins code:
-# - stride / kernel size need to be adapted in Autoencoder() class to match feature size >> these were hard-coded in the original code
-# - why does Autoencoder() encodes down to 1 dimension!? >> all information lost?
+# - stride / kernel size adapted in Autoencoder() class to match feature size >> these were hard-coded in the original code
 # - re-discretization of features after synthesis
 
 
-# adds a row to the train set containing the info if the feature is discrete (1) or continuous (0) 
-
+# adds a row to the train set containing the info if the feature is discrete (1) or continuous (0)
 def add_disc_feat_info(trainSet, disc_feat_names):
     orig_feat = list(trainSet.columns)
     disc_feat = [0] * len(orig_feat)
@@ -26,7 +23,6 @@ def add_disc_feat_info(trainSet, disc_feat_names):
 
 
 # CorGAN
-
 def gen(trainSet, smpl_frac, class_var, feat, disc_feat_names):
     
     trainSet = add_disc_feat_info(trainSet, disc_feat_names) # adds another row to the dataset which indicates which feature is discrete
@@ -44,18 +40,14 @@ def gen(trainSet, smpl_frac, class_var, feat, disc_feat_names):
                                         '--class_var', '{}'.format(class_var),\
                                         '--smpl_frac', '{}'.format(smpl_frac),\
                                         '--cuda', 'True']
-        output = subprocess.run(cmd, capture_output=True, text=True) # cmd: 50 epochs in real testing
-        #print("Output:", output.stdout)
-        #print("Error:", output.stderr)
+        out = subprocess.run(cmd, capture_output=True, text=True)
 
     # generates synthetic data
     genData_per_cl = []
     genData_comb = 0
     cmd[cmd.index('--training')] = '--generate'
     for cl in trainSet[class_var].unique():
-        output = subprocess.run(cmd, capture_output=True, text=True)
-        #print("Output:", output.stdout)
-        #print("Error:", output.stderr)
+        out = subprocess.run(cmd, capture_output=True, text=True)
         genData = np.load("methods/CorGAN/models/synthetic.npy", allow_pickle=False)
         genData = pd.DataFrame(genData)
         genData.columns = feat

@@ -1,10 +1,7 @@
 import numpy as np
-import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics.pairwise import cosine_similarity
-from toolz import unique
 from tqdm import tqdm
-tqdm.pandas()
 import cupy as cp
 
 class PPS:
@@ -44,16 +41,10 @@ class PPS:
     # compute nearest neighbor similarity
     def compute_similarity(self, r, dataset, cat_sim):
 
-        # other solutions: one-hot-encoding for cat features; Hamming distance between cat features, and cosine between numerical;
         if len(cat_sim.shape) > 2:
             print("incorrect cat_sim")
         r[self.cat_feat] = 1
         dataset[self.cat_feat] = cat_sim
-        #dot_product = np.dot(cp.array(dataset.values), cp.array(r.values))
-        #magnitude_A = np.linalg.norm(cp.array(dataset.values), axis=1)
-        #magnitude_B = np.linalg.norm(cp.array(r.values))
-        #similarities = dot_product / (magnitude_A * magnitude_B)
-        #similarities = cp.asnumpy(similarities)
         similarities = cosine_similarity(dataset.values, r.values.reshape(1, -1))[:,0]
 
         return np.sort(similarities)[-2:], similarities # if r = syn_r => nn_similarity -> [-1] else -> [-2]
@@ -62,7 +53,7 @@ class PPS:
     def find_matches(self, s, dataset, threshold):
         cat_sim = (s[self.cat_feat] == dataset[self.cat_feat]).astype(int).values
         similarities = self.compute_similarity(s, dataset.copy(), cat_sim)[1]
-        return dataset[similarities >= threshold] # index or col?
+        return dataset[similarities >= threshold]
 
 
     def find_unique_match(self, train_set, matches):
@@ -88,7 +79,6 @@ class PPS:
 
         # Compute global similarity threshold for real data
         cat_sim = (np.array(self.real_data_processed[self.cat_feat].values[:, np.newaxis]) == np.array(self.real_data_processed[self.cat_feat].values[np.newaxis, :])).astype(int)  # compares each row with all other rows => matrix: x=rows, y=rows, cell=comparison_val
-        #cat_sim[cat_sim == 0] = -1
         cat_sim = cp.asnumpy(cat_sim)
         global_similarities = self.real_data_processed.apply(
             lambda r: self.compute_similarity(r.copy(),self.real_data_processed.copy(),cat_sim[self.real_data_processed.index.get_loc(r.name)])[0][0], axis=1)
@@ -134,7 +124,7 @@ class PPS:
         unique_matches = self.find_unique_match(self.train_data_processed.copy(), self.matches.copy())
         self.recall = np.sum(unique_matches) / self.train_data.shape[0]
 
-        # Step 5: Compute Privacy Protection Score (PPS)
+        # compute privacy protection score (pps)
         self.pps = 1 - (self.precision + self.recall) / 2
         return self.pps
 

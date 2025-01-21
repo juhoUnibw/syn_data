@@ -5,8 +5,6 @@ from pzflow import Flow
 
 # #### notes:
 # - for cuda use: https://jfcrenshaw.github.io/pzflow/install/
-# - Arrythmia takes too long with CPU >> relatively large number of features and classes
-
 
 ## Normalizing Flow
 

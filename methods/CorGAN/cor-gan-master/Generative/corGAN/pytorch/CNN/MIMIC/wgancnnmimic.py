@@ -11,11 +11,8 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import sys
 
 
-#original_stdout = sys.stdout
-#sys.stdout = open('/dev/null', 'w') # supress prints of this script
 subprocess.run("export KMP_DUPLICATE_LIB_OK=TRUE", shell=True, capture_output=True)
 result = subprocess.run("echo $KMP_DUPLICATE_LIB_OK", shell=True, capture_output=True)
 
@@ -67,8 +64,6 @@ parser.add_argument("--expPATH", type=str, default=os.path.expanduser('~/experim
                     help="Training status")
 parser.add_argument("--smpl_frac", type=float, default=1, help="size of fake sample: fraction of original sample")
 opt = parser.parse_args()
-#print(opt)
-#print("cuda enabled:", opt.cuda)
 
 # Create experiments DIR
 if not os.path.exists(opt.expPATH):
@@ -76,7 +71,6 @@ if not os.path.exists(opt.expPATH):
 
 # Random seed for pytorch
 opt.manualSeed = random.randint(1, 10000) # fix seed
-#print("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 np.random.seed(opt.manualSeed)
@@ -88,13 +82,11 @@ if torch.cuda.is_available() and not opt.cuda:
 
 # Activate CUDA
 device = torch.device("cuda" if opt.cuda else "cpu")
-#print(device)
 
 ##########################
 ### Dataset Processing ###
 ##########################
 
-#data = np.load(os.path.expanduser(opt.DATASETPATH), allow_pickle=True)
 data = pd.read_csv(opt.DATASETPATH, index_col=0)
 feat = list(data.columns)
 feat.remove(opt.class_var)
@@ -117,7 +109,7 @@ if len(test_idx) < opt.batch_size:
 trainData = data[training_idx, :]
 testData = data[test_idx, :]
 
-# Trasnform Object array to float
+# transform Object array to float
 trainData = trainData.astype(np.float32)
 testData = testData.astype(np.float32)
 
@@ -130,7 +122,7 @@ class Dataset:
         # Transform
         self.transform = transform
 
-        # load data hereö
+        # load data
         self.data = data
         self.sample_size = data.shape[0]
         self.feature_size = data.shape[1]
@@ -146,7 +138,7 @@ class Dataset:
             idx = idx.tolist()
 
         sample = self.data[idx]
-        #sample = np.clip(sample, 0, 1) # the authors decide to produce dicrete binary features as input to the model >> may have been suitable for their datasets, but not for mine
+        #sample = np.clip(sample, 0, 1) # the authors decide to produce discrete binary features as input to the model >> not suitable for all datasets
 
         if self.transform:
            pass
@@ -165,9 +157,7 @@ dataset_test_object = Dataset(data=testData, transform=False)
 samplerRandom = torch.utils.data.sampler.RandomSampler(data_source=dataset_test_object, replacement=True)
 dataloader_test = DataLoader(dataset_test_object, batch_size=opt.batch_size,
                              shuffle=False, num_workers=0, drop_last=True, sampler=samplerRandom)
-# Generate random samples for test
-#random_samples = next(iter(dataloader_test))
-#feature_size = random_samples.size()[1]
+
 
 ####################
 ### Architecture ###
@@ -191,7 +181,7 @@ class Autoencoder(nn.Module):
         n_channels_base = 4
 
         # ---- ADAPTION: with low feature sizes the conv filter size have to be adapted to avoid errors in the NN architecture (output size of one layer cant be below filter size of next layer) ----
-        ## the default values are given before any adaption > to state exact change in paper.
+        ## the default values are given before any adaption
 
         def adapt_filter_size(in_size, k_size, stride):
             if stride > 1:
@@ -210,7 +200,7 @@ class Autoencoder(nn.Module):
 
         def check_sizes(in_size, k_size, stride, k_size_next):
             out_size = get_out_size(in_size, k_size, stride)
-            while out_size < k_size_next: # HIER ENTSTEHT DAUERSCHLEIFE WENN K_SIZE_NEXT NICHT REDUZIERT WIRD!
+            while out_size < k_size_next:
                 if k_size == 1 and stride == 1:
                     k_size_next -= 1
                 k_size, stride = adapt_filter_size(in_size, k_size, stride)
@@ -288,7 +278,7 @@ class Autoencoder(nn.Module):
                       padding=0, dilation=1,
                       groups=1, bias=True, padding_mode='zeros'),
               #        Autoencoder2(),
-            nn.Tanh(), # creates values between -1 and 1 >> probably not a problem when encoding > does z also contain values in the same range?
+            nn.Tanh(), # creates values between -1 and 1
         #    Autoencoder2(),
         )
 
@@ -386,32 +376,21 @@ class Autoencoder(nn.Module):
                                padding=0, dilation=1,
                                groups=1, bias=True, padding_mode='zeros'),
                           #    Autoencoder2(),
-            #nn.Sigmoid(), the Sigmoid function creates values between 0-1 >> cannot reconstruct the original values of my datasets
-            # how about another linear layers that rescales the batch normalized output of the neural network?
+            #nn.Sigmoid(), the Sigmoid function creates values between 0-1
         )
 
         # self.decoder = nn.Sequential(nn.Linear(128, dataset_train_object.feature_size)
         #                              , nn.Sigmoid())
 
-    # Methode foward ist von nn.Module abgeleitet und wird dort automatisch aufgerufen, wenn ein Objekt der Klasse definiert wird
     def forward(self, x):
-        #print("x original:",x.shape)
         x = self.encoder(x.view(-1, 1, x.shape[1]))
-        #print("x encoded:",x.shape)
         x = self.decoder(x)
-        #print("x decoded:",x.shape)
         x = torch.squeeze(x)
         # rounds discrete features
-        #print(disc_feat)
         for z in range(len(disc_feat)):
             if disc_feat.iloc[z] == 1:
                 x[:,z] = torch.round(x[:,z])
         return x
-
-    # this code snipped is not even executed
-    # def decode(self, x):
-    #     x = self.decoder(x)
-    #     return torch.squeeze(x)
 
 
 class Generator(nn.Module):
@@ -475,16 +454,6 @@ class Discriminator(nn.Module):
 ### Lossess ###
 ###############
 
-## this function is not utilized!
-# def generator_loss(y_fake, y_true):
-#     """
-#     Gen loss
-#     Can be replaced with generator_loss = torch.nn.BCELoss(). Think why?
-#     """
-#     epsilon = 1e-12
-#     return -0.5 * torch.mean(torch.log(y_fake + epsilon))
-
-
 def autoencoder_loss(x_output, y_target):
     """
     autoencoder_loss
@@ -493,24 +462,9 @@ def autoencoder_loss(x_output, y_target):
     As our matrix is too sparse, first we will take a sum over the features and then do the mean over the batch.
     WARNING: This is NOT equivalent to torch.nn.BCELoss(reduction='mean') as the later on, mean over both features and batches.
     """
-    #print("x:", x_output.shape)
-    #print("y:", y_target.shape)
-    #epsilon = 1e-12
-    #term = y_target * torch.log(x_output + epsilon) + (1. - y_target) * torch.log(1. - x_output + epsilon) # the binary cross-entropy loss is designed for binary data
-    #loss = torch.mean(-torch.sum(term, 1), 0)
     MSE = nn.MSELoss()
     loss = MSE(x_output, y_target)
     return loss
-
-
-## this function is not utilized!
-# def discriminator_loss(outputs):
-#     """
-#     autoencoder_loss
-#     Cab be replaced with discriminator_loss = torch.nn.BCELoss(). Think why?
-#     """
-#     loss = torch.mean((1 - labels) * outputs) - torch.mean(labels * outputs)
-#     return loss
 
 
 #################
@@ -658,11 +612,9 @@ if opt.training:
             recons_samples = autoencoderModel(real_samples)
 
             # Loss measures generator's ability to fool the discriminator
-            #print("x:", recons_samples.shape)
-            #print("y:", real_samples.shape)
             a_loss = autoencoder_loss(recons_samples, real_samples)
 
-            # # Reset gradients (if you comment below line, it would be a mess. Think why?!!!!!!!!!)
+            # Reset gradients
             optimizer_A.zero_grad()
 
             a_loss.backward()
@@ -856,10 +808,6 @@ if opt.training:
                 'optimizer_D_state_dict': optimizer_D.state_dict(),
                 'optimizer_A_state_dict': optimizer_A.state_dict(),
             }, os.path.join(opt.expPATH, "models_epoch_{}/cl_{}.pth".format((epoch + 1), opt.cl)))
-            #print("Model saved!")
-            # keep only the most recent 10 saved models
-            # ls -d -1tr /home/sina/experiments/pytorch/model/* | head -n -10 | xargs -d '\n' rm -f
-            #call("ls -d -1tr " + opt.expPATH + "/*" + " | head -n -10 | xargs -d '\n' rm -f", shell=True)
 
 
 if opt.finetuning:
@@ -933,13 +881,10 @@ if opt.generate:
     num_fake_samples = round(sample_size * opt.smpl_frac) # size of original data
 
     # Generate a batch of samples
-    #gen_samples = np.zeros_like(real_samples, dtype=type(real_samples)) # does not work if more synthetic data than training data shall be generated
     gen_samples = np.zeros_like(np.zeros((num_fake_samples, feature_size)), dtype=type(real_samples))
     n_batches = int(num_fake_samples / opt.batch_size)
-    #print(opt.manualSeed)
     for i in range(n_batches):
         # Sample noise as generator input
-        # z = Variable(Tensor(np.random.normal(0, 1, (opt.batch_size, opt.latent_dim))))
         z = torch.randn(opt.batch_size, opt.latent_dim, device=device)
         gen_samples_tensor = generatorModel(z)
         gen_samples_decoded = torch.squeeze(autoencoderDecoder(gen_samples_tensor.unsqueeze(dim=2)))
@@ -950,37 +895,11 @@ if opt.generate:
         gen_samples[i * opt.batch_size:(i + 1) * opt.batch_size, :] = gen_samples_decoded.cpu().data.numpy()
         # Check to see if there is any nan
         assert (gen_samples[i, :] != gen_samples[i, :]).any() == False
-    #print("z",z[0])
     gen_samples = np.delete(gen_samples, np.s_[(i + 1) * opt.batch_size:], 0)
-    #gen_samples[gen_samples >= 0.5] = 1.0 # this is probably MIMIC dataset specific...
-    #gen_samples[gen_samples < 0.5] = 0.0
 
     # Trasnform Object array to float
     gen_samples = gen_samples.astype(np.float32)
 
-    #print(gen_samples.shape, gen_samples[0])
-
-    # ave synthetic data
+    # save synthetic data
     np.save(os.path.join(opt.expPATH, "synthetic.npy"), gen_samples, allow_pickle=False)
 
-# if opt.evaluate:
-#     # Load synthetic data  
-#     gen_samples = np.load(os.path.join(opt.expPATH, "synthetic.npy"), allow_pickle=False)
-
-#     # Load real data
-#     real_samples = dataset_train_object.return_data()[0:gen_samples.shape[0], :]
-
-#     # Dimenstion wise probability
-#     prob_real = np.mean(real_samples, axis=0)
-#     prob_syn = np.mean(gen_samples, axis=0)
-
-#     p1 = plt.scatter(prob_real, prob_syn, c="b", alpha=0.5, label="WGAN")
-#     x_max = max(np.max(prob_real), np.max(prob_syn))
-#     x = np.linspace(0, x_max + 0.1, 1000)
-#     p2 = plt.plot(x, x, linestyle='-', color='k', label="Ideal")  # solid
-#     plt.tick_params(labelsize=12)
-#     plt.legend(loc=2, prop={'size': 15})
-#     # plt.title('Scatter plot p')
-#     # plt.xlabel('x')
-#     # plt.ylabel('y')
-#     plt.show()

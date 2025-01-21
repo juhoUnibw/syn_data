@@ -105,9 +105,9 @@ def calc_std(data, method):
     std_meth_df = pd.DataFrame.from_dict(std_meth, orient='index')
     std_meth_avg = std_meth_df / len(dataset_l)
     std_meth_avg = std_meth_avg.round(decimals=2)
-    std_meth_avg.to_csv(f'eval/std_results_spl.csv')
+    std_meth_avg.to_csv(f'eval/results/std_results_spl.csv')
 
-    results_summary = pd.read_csv(f'eval/results_summary_std.csv', index_col=0)
+    results_summary = pd.read_csv(f'eval/results/results_summary_std.csv', index_col=0)
     print("AVG Std across all splits", std_meth_avg.mean())
     print("AVG Std across all datasets", results_summary.iloc[:,1:].mean())
 
@@ -143,8 +143,6 @@ def calc_std_diff(data, method):
             t_stat, p_value = stats.ttest_ind(diff_1.abs(), diff_2.abs())
             t_stat, p_value = stats.ttest_ind(diff_1.abs(), diff_2.abs())
             print(f"\nMethod pair {meth_a} - {meth_b}\n", t_stat, p_value)
-
-    #std_meth_avg.to_csv(f'eval/std_results.csv')
 
 def corr_us_pps(data, method):
     df_coll = []
@@ -184,7 +182,6 @@ def corr_task_size(data, method):
         dataset, class_var, cat_feat_names, num_feat_names = load_data(dataset_name)
         train_data = pd.read_csv(f'eval/train_data/{dataset_name}/spl_1.csv', index_col=0)
         class_var = type(train_data.columns[1])(class_var)
-        #dataset_sizes[dataset_name] = len(list(train_data[class_var].unique()))
         num_cl = len(list(train_data[class_var].unique()))
         if num_cl == 2:
             dataset_sizes['=2'].append(dataset_name)
@@ -262,7 +259,6 @@ def corr_feat_type(data, method):
             results_data_level = pd.read_csv(f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv', index_col=0)
             cols = results_data_level['method'].values.tolist()
             ups_dict[t] += results_data_level.iloc[:, 1:]
-        #ups_df = pd.DataFrame.from_dict(ups_dict[t], orient='index')
         ups_dict[t] /= len(datasets_type[t])
         ups_dict[t]['method'] = cols
         ups_dict[t] = ups_dict[t][results_data_level.columns]
@@ -293,8 +289,6 @@ def check_data(data, method, n_spl):
                     assert train_data.equals(train_data_meth)
                     assert (test_data == test_data_meth).all().all()
                     assert test_data.equals(test_data_meth)
-                    #assert train_data_meth.eq(test_data_meth).any().any()==False
-                    #assert train_data.eq(test_data).any().any()==False
                 except:
                     print(f"{dataset_name}_{meth}_spl_{i}")
 
@@ -340,16 +334,10 @@ def summary():
     fig, ax = plt.subplots(figsize=(7, 3))
     x = np.arange(syn_rob_df.shape[0])
     bar_width = 0.9
-    #colors = ["blue", "orange", "green", "red"]
-    #labels = ["smpl<>", "feat<>", "num_cat", "class<>"]
-
-    #for i, col in enumerate(bar_values.columns):
-        #ax.bar(x + i * bar_width, bar_values[col], width=bar_width, color=colors[i], label=labels[i])
     ax.bar(x + 1.5*bar_width, bar_values, width=bar_width, color='black')
 
     ax.set_xlabel("synthesizers")
     ax.set_ylabel("robustness in %")
-    #ax.set_title("Robustness of synthesizers against different data characteristics")
     ax.set_xticks(x + bar_width * 1.5)
     ax.set_xticklabels(syn_rob_df['synthesizer'], rotation=45)
     ax.legend()
@@ -369,11 +357,6 @@ if __name__ == "__main__":
 
     # arguments for data generation
     parser.add_argument('--type', type=str, required=True, help='calculates the standard deviations for the performance of each synthesizers over all splits of each dataset => averages over all datasets are returned in csv')
-    #parser.add_argument('corr_smpl_size', type=bool, default=False, help='calculates the standard deviations for the performance of each synthesizers over all splits of each dataset => averages over all datasets are returned in csv')
-    #parser.add_argument('corr', type=bool, default=False, help='calculates the standard deviations for the performance of each synthesizers over all splits of each dataset => averages over all datasets are returned in csv')
-    #parser.add_argument('calc_std', type=bool, default=False, help='calculates the standard deviations for the performance of each synthesizers over all splits of each dataset => averages over all datasets are returned in csv')
-    #parser.add_argument('calc_std_diff', type=bool, default=False, help='calculates the standard deviations for the performance of each synthesizers over all splits of each dataset => averages over all datasets are returned in csv')
-    #parser.add_argument('anova', type=bool, default=False, help='calculates anova to judge statistical significance of avg ups differences between the methods over all datasets')
     parser.add_argument('--data', type=str, required=False, nargs='+', default=[],
                             help="Select dataset name, default iteratively takes all datasets")
     parser.add_argument('--n_spl', type=int, required=False, default='10', help="Choose number of data splits")

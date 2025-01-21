@@ -1,12 +1,10 @@
-import numpy as np
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
-from imblearn.over_sampling import SMOTE, BorderlineSMOTE, SVMSMOTE, ADASYN, KMeansSMOTE
+from imblearn.over_sampling import SMOTE
 
 
 # SMOTE
-
 def gen(trainSet, feat, class_var, smpl_frac, num_nn):
 
     # creates synthetic data with SMOTE
@@ -16,7 +14,6 @@ def gen(trainSet, feat, class_var, smpl_frac, num_nn):
     cl_names = trainSet[class_var].unique()
     for cl in cl_names:
         cl_size = trainSet[trainSet[class_var] == cl].shape[0]
-        #print("CL {}: {}".format(cl, cl_size))
         osmpl_sizes[cl] = cl_size * smpl_frac * 2 # fac=2 means same size as original data (because this is the augmentation logic)
         # duplicate data point if the only point in the class
         if cl_size == 1:
@@ -25,7 +22,7 @@ def gen(trainSet, feat, class_var, smpl_frac, num_nn):
             cl_size += 1
         cl_sizes.append(cl_size)
 
-    # SMOTE uses a specified number of NN to synthesize a new data point
+    # SMOTE uses a specified number of nearest neighbors to synthesize a new data point
     max_nn_size = min(cl_sizes)-1
     if num_nn > max_nn_size:
         num_nn = max_nn_size
@@ -35,6 +32,6 @@ def gen(trainSet, feat, class_var, smpl_frac, num_nn):
     gen_data_X, gen_data_y = oversample.fit_resample(X, y) # oversampling process -> new dataset creation
     gen_data = pd.DataFrame(gen_data_X, columns=feat)
     gen_data[class_var] = gen_data_y
-    gen_data = gen_data.iloc[orig_size:]
+    gen_data = gen_data.iloc[orig_size:] # extracts synthetic data from augmented dataset (separation of original and synthetic data)
 
     return gen_data

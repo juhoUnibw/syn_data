@@ -13,8 +13,7 @@ import os
 from tqdm import tqdm
 import argparse
 preprocessing = import_module('data.preprocessing') # preprocessing module
-from eval.pps import PPS
-from collections import Counter
+from pps import PPS
 
 # available datasets and paths
 dataset_names = \
@@ -52,11 +51,7 @@ def prepData(dataset, class_var):
 
     data = dataset.copy()
 
-    #dataset_feat = data.drop(labels=class_var, axis=1)
-    #features = list(dataset_feat.columns)
-    # encode string values
-    # category_mapping = dict(enumerate(data[feat].astype('category').cat.categories)) to save the mappings > could be reassigned after synthesis
-    # data[feat] = data[feat].astype('category').cat.codes
+    # converts categorical values to integer codes
     for feat in data:
         if data[feat].dtype == 'object':
             data[feat] = data[feat].astype('category').cat.codes
@@ -122,7 +117,6 @@ def check_cl_size(train_set, test_set, class_var, feat):
     return train_set, test_set
 
 
-
 # data synthesis process
 def gen(data, n_spl, method, smpl_frac, splits, test):
 
@@ -141,15 +135,11 @@ def gen(data, n_spl, method, smpl_frac, splits, test):
         cols.remove(class_var)
         feat = cols
 
-        # store f1 performances of synthetic/real data models
-        f1_real_all = []
-        f1_syn_all = []
-
         # experiment loop
         for i in range(n_spl):
             i += 1
 
-            # loads data if available (make sure the datasets have the following naming: 'spl_[1,n_spl].csv')
+            # loads data if available (make sure the datasets have the following naming: 'spl_[n_spl].csv')
             if splits:
                 train_set = pd.read_csv(f'eval/train_data/{dataset_name}/spl_{i}.csv', index_col=0)
                 test_set = pd.read_csv(f'eval/test_data/{dataset_name}/spl_{i}.csv', index_col=0)
@@ -159,12 +149,12 @@ def gen(data, n_spl, method, smpl_frac, splits, test):
                     cat_feat_names = list(map(type(train_set.columns[0]), cat_feat_names))
                     num_feat_names = list(map(type(train_set.columns[0]), num_feat_names))
 
-
             # prepares training / test data
             else:
                 train_set, test_set = prepData(dataset, class_var)
                 train_set, test_set = check_cl_size(train_set, test_set, class_var, feat) # removes classes with sample size < 5
 
+            # for test purposes (reduces number of records)
             if args.test:
                 if train_set.shape[0] > 5000:
                     z = 0
@@ -183,7 +173,7 @@ def gen(data, n_spl, method, smpl_frac, splits, test):
                 #print(f"\n METHOD {method} ...")
                 gen_data = ""
 
-                # run data synthesis script
+                # run synthesizers
                 if meth in ('gausscop', 'tvae', 'ctgan'):
                     sdv = import_module('methods.sdv.sdv')
                     gen_data = sdv.gen(train_set.copy(), smpl_frac, meth, cat_feat_names.copy(), num_feat_names.copy(), class_var)
@@ -208,33 +198,18 @@ def gen(data, n_spl, method, smpl_frac, splits, test):
                     corgan = import_module('methods.CorGAN.corgan')
                     gen_data = corgan.gen(train_set.copy(), smpl_frac, class_var, feat.copy(), cat_feat_names.copy())
                     gen_data = conv_to_disc(gen_data, cat_feat_names)
-                if meth == 'ensgen':
-                    ensgen = import_module('methods.ensemble.ensgen')
-                    gen_data_ens = ensgen.gen(train_set.copy(), feat.copy(), class_var, cat_feat_names.copy(), num_feat_names.copy(), smpl_frac_hist=0.5, n_bins=30, n_ens=30) # orig: smpl_frac_hist=0.5, n_bins=30, n_ens=30
-                    gen_data = pd.concat(gen_data_ens, axis=0) # appends all synthetic datasets (for saving purposes - need to be seperated accordingly in evaluation)
                 if meth == 'smote':
                     smote = import_module('methods.SMOTE.smote')
                     gen_data = smote.gen(train_set.copy(), feat.copy(), class_var, smpl_frac, num_nn=3)
-                if meth == 'genary': # method needs to be adjusted so that algorithm tests against all models
-                    # sklearns kNN in this method causes problems when dealing with large datasets
-                    genary = import_module('methods.evolutionary.genary')
-                    selec = genary.gen(train_set.copy(), feat.copy(), class_var, cat_feat_names.copy(), num_feat_names.copy(), smpl_frac, e_steps=100, n_cand=100, n_selec=50, crov_frac_pop=0.95, crov_frac_indv=0.5, mut_frac_pop=0.75, mut_frac_indv=0.03)
-                    gen_data = selec[0]
                 if meth == 'great': # sampling only works using gpu in standard code >> can be changed, though
                     great = import_module('methods.GReaT.great') # https://github.com/kathrinse/be_great/tree/main
-                    gen_data = great.gen(train_set.copy(), smpl_frac, llm_id='distilgpt2') # distil-gpt2 / gpt2-medium
-                if meth == 'tabula': # sampling only works using gpu in standard code >> can be changed, though
-                    tabula = import_module('methods.TabuLa.Tabula-main.tabula_gen') # https://github.com/zhao-zilong/tabula
-                    gen_data = tabula.gen(train_set.copy(), cat_feat_names.copy(), smpl_frac, class_var)
+                    gen_data = great.gen(train_set.copy(), smpl_frac, llm_id='distilgpt2') # distil-gpt2 / gpt2-medium available
                 if meth in ('priv_bayes', 'cart'): # synthpop package loads the parametric approach by default (was replaced with DT classifier class)
                     dpart = import_module('methods.dpart.dpart_gen')
                     gen_data = dpart.gen(train_set.copy(), feat.copy(), class_var, meth, smpl_frac, eps=0.5)
 
                 if type(gen_data) == str:
                     continue
-
-                # optional: remap original feature values
-                #data[feat] = data[feat].map(category_mapping)
 
                 # save the train, test and generated data for each method, dataset and split
                 os.makedirs(f'eval/gen_data/{dataset_name}/{meth}', exist_ok=True)
@@ -244,28 +219,6 @@ def gen(data, n_spl, method, smpl_frac, splits, test):
                 train_set.to_csv(f'eval/train_data/{dataset_name}/{meth}/spl_{i}.csv')
                 test_set.to_csv(f'eval/test_data/{dataset_name}/{meth}/spl_{i}.csv')
 
-
-def ens_pred(gen_data, train_set, test_set, feat, class_var, model):
-    ensemblePreds = []
-    for i in range(int(gen_data.shape[0] / train_set.shape[0])):
-        data = gen_data.iloc[i * train_set.shape[0]:(i + 1) * train_set.shape[0]]
-        X_train, y_train = data[feat], data[class_var]
-        X_test = test_set[feat]
-        clf_ens = clfType(model)
-        clf_ens.fit(X_train, y_train)
-        preds = clf_ens.predict(X_test)
-        ensemblePreds.append(list(preds))
-
-    # summarizes predictions of ensemble model
-    finalPreds = []
-    for l in range(len(test_set[class_var])):
-        ens_labels = []
-        for ens in ensemblePreds:
-            ens_labels.append(ens[l])
-        ensembleDec = Counter(ens_labels).most_common()[0][0]
-        finalPreds.append(ensembleDec)
-
-    return finalPreds
 
 # evaluation of synthetic data
 def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, model, weights, calc, summary):
@@ -279,6 +232,7 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
     else:
         dataset_l = dataset_names.keys()
 
+    # to calculate new evaluation results
     if calc:
 
         for dataset_name in dataset_l:
@@ -311,7 +265,6 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
                     i += 1
 
                     #print(f"\n METHOD {meth} ... split {i}")
-
                     train_file_path = os.path.join(real_train_path, dataset_name, meth, f'spl_{i}.csv')
                     train_set = pd.read_csv(train_file_path, index_col=0)
                     gen_file_path = os.path.join(gen_data_path, dataset_name, meth, f'spl_{i}.csv')
@@ -325,41 +278,12 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
                     for s in sets:
                         s.columns = s.columns.astype(ct)
 
+                    # privacy evaluation
                     pps_obj = PPS(real_set, train_set, gen_data, cat_feat_names, num_feat_names, class_var)
                     pps = pps_obj.run_analysis()
                     pps_all.append(pps)
 
-                    # evalauate f1 score on ML models trained on real and synthetic data
-                    if meth == 'ensgen': # part of the ensgen evaluation happens inside the script => no calculation for gen_data here
-                        # Training and test of model >> X_train is one synthetic dataset, X_test the real test data (integrate this part in the evaluation script)
-                        if model != 'all':
-                            ens_preds = ens_pred(gen_data, train_set, test_set, feat, class_var, model)
-                            # calculates score of ensemble model and the average score of the individual datasets
-                            f1_syn = f1_score(test_set[class_var], ens_preds, average='macro')
-                            f1_real, preds = testClf(train_set[feat], train_set[class_var], test_set[feat], test_set[class_var], 'real',
-                                                     model, printScore=False)
-                            us = f1_syn / f1_real
-                            f1_real_all.append(f1_real)
-                            f1_syn_all.append(f1_syn)
-                            us_all.append(us)
-                        else:
-                            f1_real_models = []
-                            f1_syn_models = []
-                            for model in ['kNN', 'NB', 'LG', 'DT', 'RF']:
-                                ens_preds = ens_pred(gen_data, train_set, test_set, feat, class_var, model)
-                                # calculates score of ensemble model and the average score of the individual datasets
-                                f1_syn = f1_score(test_set[class_var], ens_preds, average='macro')
-                                f1_real, preds = testClf(train_set[feat], train_set[class_var], test_set[feat],
-                                                         test_set[class_var], 'real', model, printScore=False)
-                                f1_real_models.append(f1_real)
-                                f1_syn_models.append(f1_syn)
-                            f1_real_models_avg = sum(f1_real_models) / len(f1_real_models)
-                            f1_syn_models_avg = sum(f1_syn_models) / len(f1_syn_models)
-                            us = f1_syn_models_avg / f1_real_models_avg
-                            f1_real_all.append(f1_real_models_avg)
-                            f1_syn_all.append(f1_syn_models_avg)
-                            us_all.append(us)
-
+                    # utility evaluation: evaluate f1 score on ML models trained on real and synthetic data
                     if model != 'all':
                         f1_real, preds = testClf(train_set[feat], train_set[class_var], test_set[feat], test_set[class_var], 'real', model, printScore=False)
                         f1_syn, preds = testClf(gen_data[feat], gen_data[class_var], test_set[feat], test_set[class_var], 'syn', model, printScore=False)
@@ -405,19 +329,19 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
                 print("ups:", ups_avg)
                 print("\n")
 
-                # save results
+                # save results: meth_level -> scores for ONE method and ONE dataset across ten splits
                 meth_level = pd.DataFrame(
                     {'ups': ups_all+[ups_avg], 'us': us_all+[us_avg], 'pps': pps_all+[pps_avg],
                      'F1_real': f1_real_all+[f1_real_avg], 'F1_syn': f1_syn_all+[f1_syn_avg]},
                 )
                 meth_level.to_csv(f'eval/gen_data/{dataset_name}/{meth}/results_{meth}.csv')
+
+            # save results: data_level -> scores for ALL methods for ONE dataset, averaged across ten splits
             data_level = pd.DataFrame({'method': method_l, 'ups': ups_avg_all, 'us': us_avg_all, 'pps': pps_avg_all, 'F1 real': f1_real_avg_all, 'F1 syn': f1_syn_avg_all})
             data_level_path = f'eval/gen_data/{dataset_name}/results_{dataset_name}.csv'
-            # if os.path.exists(data_level_path):
-            #     data_level_from_path = pd.read_csv(data_level_path, index_col=0)
-            #     data_level = pd.concat([data_level_from_path, data_level])# IN ORDER TO ADD NEW METHOD TO EXISTIN resulst
             data_level.to_csv(data_level_path)
 
+    # calculates summary scores for results (presented in main part of the paper)
     if summary:
         winner_ups = []
         for dataset_name in dataset_l:
@@ -435,12 +359,12 @@ def eval(data, real_train_path, gen_data_path, real_test_path, n_spl, method, mo
         summary_eval['# best'] = 0
         for m, w in win_sum.items():
             summary_eval['# best'][summary_eval['method']==m] = w
-        summary_eval.to_csv('eval/results_summary.csv')
+        summary_eval.to_csv('eval/results/results_summary.csv')
         summary_eval_std = pd.concat(data_level_all).select_dtypes('number').groupby(level=0).std()
         summary_eval_std['method'] = data_level_all[0]['method']
         summary_eval_std = summary_eval_std[list(data_level_all[0].columns)]
-        summary_eval_std.to_csv('eval/results_summary_std.csv')
-        with open('eval/data_winners.txt', 'w') as f:
+        summary_eval_std.to_csv('eval/results/results_summary_std.csv')
+        with open('eval/results/data_winners.txt', 'w') as f:
             for k in data_level_winner.keys():
                 f.writelines(f"{k}\n{data_level_winner[k]}\n\n")
 
@@ -456,7 +380,7 @@ if __name__ == "__main__":
     parser_gen.add_argument('--data', type=str, required=False, nargs='+', default=[],
                              help="Select dataset name, default iteratively takes all datasets")
     parser_gen.add_argument('--method', type=str, required=False, nargs='+', default=[],
-                             help="Select method by name")  # tvae, gausscop, ctgan / arf / pzflow / knnmtd / mcgen / corgan / ensgen / genary / smote / priv_bayes, cart / great / tabula
+                             help="Select method by name")  # tvae, gausscop, ctgan / arf / pzflow / knnmtd / mcgen / corgan / smote / priv_bayes, cart / great / tabula
     parser_gen.add_argument('--n_spl', type=int, required=False, default='10', help="Choose number of data splits")
     parser_gen.add_argument('--smpl_frac', type=int, required=False, default=1,
                             help="Defines synthetic data size (fraction of training data size)")
@@ -474,11 +398,11 @@ if __name__ == "__main__":
     parser_eval.add_argument('--real_test_path', type=str, required=True, help="Path to real test datasets")
     parser_eval.add_argument('--n_spl', type=int, required=False, default='10', help="Choose number of data splits")
     parser_eval.add_argument('--method', type=str, required=False, nargs='+', default=[],
-                            help="Select method by name")  # tvae, gausscop, ctgan / arf / pzflow / knnmtd / mcgen / corgan / ensgen / genary / smote / priv_bayes, cart
+                            help="Select method by name")  # tvae, gausscop, ctgan / arf / pzflow / knnmtd / mcgen / corgan / smote / priv_bayes, cart
     parser_eval.add_argument('--model', type=str, required=False, default='all',
                              help="Select model by name")  # NB, RF, DT, LG, (NN?)
     parser_eval.add_argument('--weights', type=tuple, required=False, default=(0.5, 0.5),
-                             help="Choose weights to balance influence of us and pps -> (w_us, w_pps)")  # NB, RF, DT, LG, (NN?)
+                             help="Choose weights to balance influence of us and pps -> (w_us, w_pps)")  # NB, RF, DT, LG
     parser_eval.add_argument('--calc', type=bool, required=False, default=False,
                             help="True if eval metric must be calculated.")
     parser_eval.add_argument('--summary', type=bool, required=False, default=False,
@@ -486,39 +410,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # start generation / evaluation
     if args.command == 'gen':
         gen(args.data, args.n_spl, args.method, args.smpl_frac, args.splits, args.test)
     if args.command == 'eval':
         eval(args.data, args.real_train_path, args.gen_data_path, args.real_test_path, args.n_spl, args.method, args.model, args.weights, args.calc, args.summary)
 
-# ### Evaluation of Fake Samples with Neural Networks
-
-# evaluation of generated data with NN => to check if the performance increase limit is due to the data quality or the classifier limit
-# from keras.models import Sequential, Model
-# from keras.layers import Dense, Input, Dropout
-# from keras import optimizers
-# from keras.optimizers import Adam
-# import tensorflow as tf
-#  
-#  # NEEDS to be adjusted to multiclass classification! > is there other, better NN?
-# 
-# def NN(X_train, X_test, y_train, y_test):
-#     NN = Sequential()
-#     NN.add(Dense(X_train.shape[1],  activation='elu', input_shape=(X_train.shape[1],)))
-#     NN.add(Dense(round(X_train.shape[1]),  activation='elu'))
-#     NN.add(Dense(round(X_train.shape[1]*2),  activation='elu'))
-#     NN.add(Dense(round(X_train.shape[1]*2),  activation='elu'))
-#     NN.add(Dense(round(X_train.shape[1]*2),  activation='elu'))
-#     NN.add(Dense(round(X_train.shape[1]*2),  activation='elu'))
-#     NN.add(Dense(round(X_train.shape[1]*2),  activation='elu'))
-#     NN.add(Dense(round(X_train.shape[1]*2),  activation='elu'))
-#     NN.add(Dense(round(X_train.shape[1]*2),  activation='elu'))
-#     NN.add(Dense(round(X_train.shape[1]*2),  activation='elu'))
-#     NN.add(Dense(round(X_train.shape[1]),  activation='elu'))
-#     NN.add(Dense(1,  activation='sigmoid'))
-#     NN.compile(loss=tf.keras.losses.BinaryCrossentropy(), optimizer = Adam(), metrics=[tf.keras.metrics.BinaryAccuracy()])
-#     trained_model = NN.fit(X_train, y_train, batch_size=4, epochs=3, verbose=1, validation_data=(X_test, y_test))
-
-# start NN classification
-#NN(train_set[feat], train_set[feat], dataTrain.Outcome, test_set.Outcome)
 

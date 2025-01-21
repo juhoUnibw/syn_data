@@ -1,4 +1,3 @@
-# %%
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
@@ -8,13 +7,11 @@ import subprocess
 # #### Adaption ins code:
 # - DataSetSplit.cass is replaced by standardized data preprocessing of pipeline
 # - generativeModel gets dynamic hyperparameters for number of labels and dataset name and paths
-# - MC Gen only generates continuous values >> MultivariateNormalDistribution. Discrete values are restored after synthesis if feature in discrete_feature_names >> but for categorical features it does not make sense because new categories could be generated?
-# - Some features are treated as discrete by the MultivariateNormalDistribution (or in the Java code) >> cannot see why, but no harm done.
+# - MC Gen only generates continuous values >> MultivariateNormalDistribution. Discrete values are restored after synthesis.
 # - Hyperparameters (cluster size, privacy level) can be changed in the Java code directly. Otherwise nExp = 1 means 10x4 = 400 generations per dataset.
 
 
 # MCGEN
-
 ## extract files from dir
 def extract_file_paths(folder):
     file_paths_abs = []
@@ -24,7 +21,6 @@ def extract_file_paths(folder):
                 continue
             file_paths_abs.append(os.path.join(dirpath, filename))
     return file_paths_abs
-
 
 ## synthesize data
 def gen(trainSet, smpl_frac, class_var, dataset_name):
@@ -53,8 +49,6 @@ def gen(trainSet, smpl_frac, class_var, dataset_name):
         file.write('{}\n'.format(n_gen))
         file.write('{}\n'.format(labels_str[:-1]))
 
-    smplSize = round(trainSet.shape[0] * smpl_frac) # sample size of fake data >> NOT TAKEN INTO ACCOUNT AT THE MOMENT >> in Java Klasse verfügbar machen > über config?
-
     # put class columns at first position >> expected by mcgen
     orig_cols = list(trainSet.columns)
     temp_cols = orig_cols.copy()
@@ -78,7 +72,7 @@ def gen(trainSet, smpl_frac, class_var, dataset_name):
     cmd = 'cd methods/MCGEN/MCGEN-Private-Synthetic-Data-Generator-main && mvn exec:java -Djava.io.tmpdir=/home/julian_hoellig/mytmp -Dexec.mainClass="MCGEN_Demo.SynDataGeneration.generativeModel"'
     out = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
-    # there is a specified number of synthetic datasets available in the dir - they need to be extracted and tested
+    # there is a specified number of synthetic datasets available in the dir
     gen_data_coll = []
     gen_data_dir = 'methods/MCGEN/MCGEN-Private-Synthetic-Data-Generator-main/ExpData/{}/MCGEN'.format(dataset_name)
     gen_data_paths = extract_file_paths(gen_data_dir)

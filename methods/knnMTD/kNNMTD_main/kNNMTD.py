@@ -1,19 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.metrics import accuracy_score,confusion_matrix,recall_score,precision_score,f1_score,\
-                                roc_curve, roc_auc_score, precision_recall_curve,auc, average_precision_score, precision_recall_fscore_support, classification_report
-from sklearn.model_selection import train_test_split, StratifiedKFold, KFold
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-import matplotlib.pyplot as plt
-from sklearn.model_selection import GridSearchCV
-from sklearn import preprocessing
-import random
-from scipy.spatial import distance
-from imblearn.over_sampling import SMOTE
-from imblearn.under_sampling import NearMiss 
-from scipy.spatial.distance import cdist
-from sklearn.neighbors import NearestNeighbors
 import heapq
 
 class kNNMTD():
@@ -23,9 +10,8 @@ class kNNMTD():
     def __init__(self, smpl_frac=1, k=3, mode=-1, random_state=1, n_obs=100):
         self.type = mode
         self.smpl_frac = smpl_frac
-        #self._gen_obs = 1000 #  used for my own testing
         self.n_obs = n_obs
-        self._gen_obs = self.n_obs * 10 # orig
+        self._gen_obs = self.n_obs * 10
         self.k = k
         np.random.RandomState(random_state)
 
@@ -109,7 +95,6 @@ class kNNMTD():
         columns = X_train.columns
         temp_surr_data = pd.DataFrame(columns = list(train.columns))
         surrogate_data = pd.DataFrame(columns = list(train.columns))
-        synth_data = pd.DataFrame(columns = list(train.columns))
         temp = pd.DataFrame(columns = list(train.columns))
         if(self.type == 0):
             for t in np.unique(train[class_col]):
@@ -208,18 +193,14 @@ class kNNMTD():
             surrogate_data[x]=surrogate_data[x].astype(train[x].dtypes.name)
         surrogate_data.reset_index(inplace=True, drop=True)
         if(not isinstance(class_col,type(None)) and len(np.unique(train[class_col]))<=20):
-            #num, div = np.abs(self.n_obs), len(np.unique(surrogate_data[class_col]))
-            # class_num = [num // div + (1 if x < num % div else 0)  for x in range (div)] old
             for i in range(len(np.unique(surrogate_data[class_col]))):
                 try:
                     class_num = round(train[train[class_col]==np.unique(surrogate_data[class_col])[i]].shape[0] * self.smpl_frac)
                     temp_data = surrogate_data[surrogate_data[class_col] == np.unique(surrogate_data[class_col])[i]].sample(class_num) # keeps sample size between classes balanced
-                    # temp_data = surrogate_data[surrogate_data[class_col] == np.unique(surrogate_data[class_col])[i]].sample(class_num[i]) # samples same amount for each class.. CHANGE!
                 except ValueError:
                     temp_data = surrogate_data[surrogate_data[class_col] == np.unique(surrogate_data[class_col])[i]].sample(class_num, replace=True) # keeps sample size between classes balanced
-                    #temp_data = surrogate_data[surrogate_data[class_col] == np.unique(surrogate_data[class_col])[i]].sample(class_num[i], replace='True')
                 synth_data = pd.concat([synth_data,temp_data],axis=0)
-        else: # this else does not make much sense >> why sampling more if there are more than 5 classes!? >> REMOVE
+        else:
             try:
                 temp_data = surrogate_data.sample(frac=self.smpl_frac)
             except ValueError:

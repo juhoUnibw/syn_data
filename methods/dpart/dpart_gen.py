@@ -14,7 +14,6 @@ def toDF(cl_fake_smpls, class_var_str):
     dataTrain = dataTrain.sample(frac=1)
     return dataTrain
 
-
 # dpart
 def gen(train_set, feat, class_var, gen_meth, smpl_frac, eps):
     
@@ -26,13 +25,12 @@ def gen(train_set, feat, class_var, gen_meth, smpl_frac, eps):
     # Model and generate Data per class
     cl_fake_smpls = {}
 
-    # remove features with a single feature value > bib throws error (sometimes these values are valid because they refer to only one class)
+    # remove features with a single feature value
     rm_feat = []
     for cl in train_set[class_var_str].unique():
         cl_data = train_set[feat][train_set[class_var_str] == cl]
         for f in feat:
             if len(cl_data[f].value_counts()) == 1:
-                #print("Feature {} only contains a single value --> an virtual record with a smiliar value will be added to the class.".format(f))
                 rm_feat.append(f)
     
     for cl in train_set[class_var_str].unique():
@@ -43,7 +41,6 @@ def gen(train_set, feat, class_var, gen_meth, smpl_frac, eps):
         if gen_meth == 'cart':
             meth = DPsynthpop(
                         epsilon=eps
-            #self.bounds[col] = {"min": series.min(), "max": series.max()} - define bounds = {col: {min, max}}n manually to allow for more variation/protection in the data!
                     )
         cl_data = train_set[feat][train_set[class_var_str] == cl]
         if rm_feat != []:
