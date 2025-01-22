@@ -1,8 +1,16 @@
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics.pairwise import cosine_similarity
-from tqdm import tqdm
 import cupy as cp
+from tqdm import tqdm
+
+
+## Requirements for PPS() input:
+# real_data: contains complete real dataset (train+test) [pandas DataFrame]
+# train_data: dataset that was used by synthesizer to generate the synthetic dataset [pandas DataFrame]; part of real_data
+# syn_data: synthetic data [pandas DataFrame]
+# cat_feat: names of categorical features [List(str)]
+# num_feat: names of numerical features [List(str)]
 
 class PPS:
     def __init__(self, real_data, train_data, syn_data, cat_feat, num_feat, class_var):
@@ -127,4 +135,6 @@ class PPS:
         # compute privacy protection score (pps)
         self.pps = 1 - (self.precision + self.recall) / 2
         return self.pps
+
+
 
