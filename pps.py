@@ -2,7 +2,9 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics.pairwise import cosine_similarity
 import cupy as cp
-from tqdm import tqdm
+import pandas as pd
+import argparse
+#from tqdm import tqdm
 
 
 ## Requirements for PPS() input:
@@ -137,4 +139,40 @@ class PPS:
         return self.pps
 
 
+# start of command line call and loading of arguments
+if __name__ == "__main__":
+
+    # defines parsers
+    parser = argparse.ArgumentParser()
+
+    # arguments for data generation
+    parser.add_argument('--train_path', type=str, required=True, help='path to train dataset (CSV) that was used by synthesizer to generate the synthetic dataset')
+    parser.add_argument('--gen_path', type=str, required=True, help='path to synthetic dataset (CSV)')
+    parser.add_argument('--test_path', type=str, required=True, help='path to test dataset (CSV) that was NOT used for synthesis')
+    parser.add_argument('--cat_feat', type=str, required=False, nargs='+', default=[], help='list of categorical feature names')
+    parser.add_argument('--num_feat', type=str, required=False, nargs='+', default=[], help='list of numerical feature names')
+    parser.add_argument('--class_var', type=str, required=False, help='class name of datasets')
+    args = parser.parse_args()
+
+    # load datasets
+    train_set = pd.read_csv(args.train_path, index_col=0)
+    gen_data = pd.read_csv(args.gen_path, index_col=0)
+    test_set = pd.read_csv(args.test_path, index_col=0)
+    real_set = pd.concat([train_set, test_set], axis=0)  # combines train and test back to full real dataset needed for analysis
+
+    # make sure all datasets share the same column type
+    ct = train_set.columns.dtype
+    sets = [train_set, test_set, real_set, gen_data]
+    for s in sets:
+        s.columns = s.columns.astype(ct)
+
+    # assign categorical/numerical features names
+    cat_feat_names = args.cat_feat
+    num_feat_names = args.num_feat
+    class_var = args.class_var
+
+    # run privacy evaluation -> obtain pps
+    pps_obj = PPS(real_set, train_set, gen_data, cat_feat_names, num_feat_names, class_var)
+    pps = pps_obj.run_analysis()
+    print("privacy protection score:", pps)
 
