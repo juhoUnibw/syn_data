@@ -164,3 +164,22 @@ python pps.py \
 --num_feat I0 PA500 HFS DA Area A/DA 'Max IP' DR P \
 --class_var Class
 ```
+
+## Licenses
+
+This repository is licensed under MIT license. It contains or requires installation of the following third-party codes and repositories:
+- arf: Adversarial Random Forests [10.32614/CRAN.package.arf] (GPL license).
+- cor-gan [https://github.com/astorfi/cor-gan] (authors allow use with attribution - please cite their paper when using this repository in your study)
+- be_great [https://github.com/kathrinse/be_great?tab=readme-ov-file] (MIT license)
+- MC-GEN: Multi-level Clustering for Private Synthetic Data Generation [https://github.com/mingchenli/MCGEN-Private-Synthetic-Data-Generator?] (Apache license 2.0)
+- pzflow [https://github.com/jfcrenshaw/pzflow] (MIT license)
+- SMOTE [https://imbalanced-learn.org/stable/references/generated/imblearn.over_sampling.SMOTE.html#imblearn.over_sampling.SMOTE] (MIT license)
+- dpart [https://pypi.org/project/dpart/] (MIT license)
+- kNNMTD [https://github.com/jsivaku1/kNNMTD] (authors allow use with attribution - please cite their paper when using this repository in your study)
+- SDV [https://github.com/sdv-dev/SDV] (Business Source License 1.1)
+
+Attribution cor-gan:
+A. Torfi and A. Fox, "CorGAN: Correlation-Capturing Convolutional Generative Adversarial Networks for Generating Synthetic Healthcare Records," 2020, arXiv:2001.09346.
+
+Attribution kNNMTD:
+J. Sivakumar, K. Ramamurthy, M. Radhakrishnan, and D. Won. "Synthetic sampling from small datasets: A modified mega-trend diffusion approach using k-nearest neighbors," Knowledge-Based Systems, 2021, p. 107687.
