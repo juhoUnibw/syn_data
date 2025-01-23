@@ -1,21 +1,3 @@
-data/Arrhythmia/
-data/Breast Cancer/
-data/Breast Tissue/
-data/Cardiotocography/
-data/Chronic Kidney Disease/
-data/Dermatology/
-data/Diabetes/
-data/Diabetic Retinography/
-data/EEG Eye State/
-data/Echocardiogram/
-data/Heart Disease/
-data/Lymphography/
-data/Postoperative Patient Data/
-data/Stroke/
-data/Thoracic Surgery/
-data/Thyroid Disease/
-data/Tumor/
-data/Z-Adlidazeh Sani/
 eval/gen_data/
 eval/test_data/
 eval/train_data/
