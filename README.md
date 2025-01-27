@@ -2,7 +2,7 @@
 ### Supplementary code for paper publication
 
 This repository contains the evaluation pipeline described in the paper **Utility Meets Privacy: A Critical Evaluation of Tabular Data Synthesizers**. 
-It can be used to reproduce the experimental part of the study, and may be adapted for evaluation of other synthesizers. The pipeline includes a script for privacy analysis of synthetic datasets (**pps.py**), which may also be used independently as described [here](#evaluate-privacy-using-the-privacy-protection-score-pps).
+It can be used to reproduce the experimental part of the study, and may be adapted for evaluation of other synthesizers. The pipeline includes a script for privacy analysis of synthetic datasets (**pps.py**), which may also be used independently as described [here](#privacy-analysis-using-the-privacy-protection-score).
 
 
 ## Run Pipeline
