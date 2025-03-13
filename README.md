@@ -165,6 +165,28 @@ python pps.py \
 --class_var Class
 ```
 
+### Citation
+
+If you use the pps code for your research, please cite the following source:
+
+J. Höllig and M. Geierhos, "Utility Meets Privacy: A Critical Evaluation of Tabular Data Synthesizers," in IEEE Access, doi: 10.1109/ACCESS.2025.3549680.
+keywords: {Synthesizers;Synthetic data;Data privacy;Machine learning;Data models;Privacy;Deep learning;Accuracy;Protection;Predictive models;Membership inference analysis;privacy evaluation;tabular data synthesizer;utility-privacy trade-off},
+
+BibTeX:
+```bash
+@ARTICLE{10918632,
+  author={Höllig, Julian and Geierhos, Michaela},
+  journal={IEEE Access}, 
+  title={Utility Meets Privacy: A Critical Evaluation of Tabular Data Synthesizers}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={1-1},
+  keywords={Synthesizers;Synthetic data;Data privacy;Machine learning;Data models;Privacy;Deep learning;Accuracy;Protection;Predictive models;Membership inference analysis;privacy evaluation;tabular data synthesizer;utility-privacy trade-off},
+  doi={10.1109/ACCESS.2025.3549680}}
+
+```
+
 ## Licenses
 
 This repository is licensed under MIT license. It contains or requires installation of the following third-party codes and repositories:
