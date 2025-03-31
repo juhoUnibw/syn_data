@@ -29,7 +29,7 @@ The following dependencies are required.
 2. Docker 27.4.1 (see https://docs.docker.com/engine/install/)
 3. Nvidia Container Toolkit 1.17.3 with Docker configuration (see https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 5. Docker image > [Download](https://gigamove.rwth-aachen.de/de/download/c3262121f588e504cb35b4edf41d1de9) [pw: ` m5M2S+=pfzVLHNJ `]
-available until 2025-04-01
+available until 2025-04-14
 
 >📌 **Note: if permission is denied when running docker, try the following:** 
 > - use **sudo** prefix
