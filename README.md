@@ -28,7 +28,7 @@ The following dependencies are required.
 1. CUDA 12.7 and GPU
 2. Docker 27.4.1 (see https://docs.docker.com/engine/install/)
 3. Nvidia Container Toolkit 1.17.3 with Docker configuration (see https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-5. Docker image > [Download](https://gigamove.rwth-aachen.de/de/download/c3262121f588e504cb35b4edf41d1de9) [pw: ` m5M2S+=pfzVLHNJ `]
+5. Docker image > [Download](https://gigamove.rwth-aachen.de/de/download/b61eb655cc82ed32f69a66c5e2e1ebf9) [pw: ` fexwyb-qogfAs-7warty `]
 available until 2025-04-28
 
 >📌 **Note: if permission is denied when running docker, try the following:** 
